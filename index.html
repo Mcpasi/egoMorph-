@@ -3,6 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>EgoMorph Optimiert – TensorFlow.js Version</title>
+  <!-- Progressive Web App (PWA) support -->
+  <!-- Link to the web app manifest which defines how the app behaves when installed on a mobile device -->
+  <link rel="manifest" href="manifest.json">
+  <!-- Define icons for various platforms -->
+  <link rel="icon" type="image/png" sizes="192x192" href="ego_icon_192.png">
+  <link rel="apple-touch-icon" href="ego_icon_192.png">
+  <!-- Set the theme colour for the browser UI and iOS status bar -->
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="EgoMorph">
+  <!-- Load Font Awesome for icons (e.g. a brain icon) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Load compromise for simple NLP tasks -->
   <script src="https://unpkg.com/compromise@14.14.4/builds/compromise.min.js"></script>
   <!-- Load TensorFlow.js.  A pinned version is specified to ensure
@@ -20,6 +33,9 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
+      /* Add padding so the UI is not flush to the device edges */
+      padding: 20px;
+      box-sizing: border-box;
     }
     /* Responsive entity whose colour and size reflect internal state */
     #entity {
@@ -31,6 +47,26 @@
       transition: all 0.4s ease;
       box-shadow: 0 0 30px #66f;
       overflow: hidden;
+      /* Use a CSS variable to control scale from JavaScript. This allows us to
+         combine scaling with other animations (e.g. shaking) without
+         overwriting the transform property. */
+      --scale: 1;
+      transform: scale(var(--scale));
+    }
+    /* Define a shake animation that moves the entity horizontally.  The
+       transform references the --scale variable so that the scaling
+       applied in JavaScript is preserved during the shaking. */
+    @keyframes shake {
+      0% { transform: scale(var(--scale)) translateX(0); }
+      25% { transform: scale(var(--scale)) translateX(-4px); }
+      50% { transform: scale(var(--scale)) translateX(4px); }
+      75% { transform: scale(var(--scale)) translateX(-4px); }
+      100% { transform: scale(var(--scale)) translateX(0); }
+    }
+    /* Apply the shake animation when the entity has the .shake class.  The
+       animation repeats continuously while the class is present. */
+    #entity.shake {
+      animation: shake 0.4s linear infinite;
     }
     .eye {
       position: absolute;
@@ -39,6 +75,28 @@
       height: 20%;
       background: #eee;
       border-radius: 50%;
+      pointer-events: none;
+    }
+    /*
+      Each eye contains a smaller pupil which we animate in response to
+      pointer movement.  The pupil is scaled as a percentage of its
+      parent eye so it remains centred and cannot leave the eye
+      boundary.  Its position is updated via JavaScript by applying
+      small percentage translations on the X and Y axes.  A short
+      transition makes the movement appear smooth without lagging too
+      far behind the cursor.
+    */
+    .eye .pupil {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      top: 25%;
+      left: 25%;
+      /* Use a dark fill so the pupil stands out clearly against the white sclera */
+      background: #000;
+      border-radius: 50%;
+      /* Smoothly animate top/left changes as the eyes track the pointer */
+      transition: top 0.1s linear, left 0.1s linear;
       pointer-events: none;
     }
     #eye-left { left: 25%; }
@@ -57,6 +115,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      /* Add a subtle container around the controls for better layout */
+      background: #111;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(102,102,255,0.3);
     }
     #inputText {
       width: min(300px, 80vw);
@@ -64,6 +127,7 @@
       background: #222;
       color: #eee;
       border: 1px solid #555;
+      border-radius: 4px;
     }
     button {
       margin-top: 10px;
@@ -72,6 +136,7 @@
       color: #eee;
       border: none;
       cursor: pointer;
+      border-radius: 4px;
     }
     #speechButton {
       margin-top: 10px;
@@ -91,15 +156,81 @@
       min-height: 60px;
       white-space: pre-wrap;
       overflow-y: auto;
+      border-radius: 4px;
     }
     #memory {
       margin-top: 10px;
       font-size: 0.8em;
       color: #aaa;
     }
+
+    /* Logo image styling */
+    #egoIcon {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 100px;
+    }
+
+    /* Modal overlay for welcome message */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: #222;
+      padding: 20px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 90vw;
+      color: #eee;
+    }
+
+    .modal-content button {
+      margin-top: 15px;
+      padding: 6px 16px;
+      background: #333;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    /* Installation button styling */
+    #installBtn {
+      margin-top: 10px;
+      padding: 8px 20px;
+      background: #333;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      display: none;
+    }
   </style>
 </head>
 <body>
+  <!-- Logo and welcome modal -->
+  <!-- Modal overlay shown on first load.  It introduces the user to the app. -->
+  <div id="welcomeModal" class="modal">
+    <div class="modal-content">
+      <p>Willkommen bei EgoMorph! Diese KI erkennt Emotionen aus deinen Wörtern.</p>
+      <button id="closeModalBtn">OK</button>
+    </div>
+  </div>
+
   <!-- The animated entity with facial features -->
   <div id="entity">
     <div class="eye" id="eye-left"></div>
@@ -200,6 +331,26 @@
     const responseBox = document.getElementById("response");
     const memoryBox = document.getElementById("memory");
     const speechButton = document.getElementById("speechButton");
+
+    // === Add pupils for dynamic eye tracking ===
+    // Create small pupil elements inside each eye.  These will be moved
+    // relative to the user’s pointer to simulate gaze.  We attach the
+    // pupils immediately after grabbing the eye elements so they exist
+    // before any rendering occurs.  Each pupil is given the CSS class
+    // `.pupil` defined in the stylesheet above.  The variables are
+    // declared with `let` so they remain in scope for the mousemove
+    // handler further below.
+    let leftPupil, rightPupil;
+    if (leftEye) {
+      leftPupil = document.createElement('div');
+      leftPupil.className = 'pupil';
+      leftEye.appendChild(leftPupil);
+    }
+    if (rightEye) {
+      rightPupil = document.createElement('div');
+      rightPupil.className = 'pupil';
+      rightEye.appendChild(rightPupil);
+    }
   // Voice enabled flag: determines whether voice input/output is active.
   // This can be toggled by the user via the settings panel and is
   // persisted across page loads via localStorage.  When false the
@@ -251,8 +402,14 @@
       traurigkeit: 10,
       ueberraschung: 10
     };
-    // Short-term memory of recent inputs.
+    // Short-term memory of recent inputs.  In addition to storing the
+    // last few full sentences, memory also tracks extracted key terms
+    // (e.g. names, places) via the `.topics` property.  This allows
+    // EgoMorph to recall salient nouns for more contextual replies.
     let memory = [];
+    // Attach a separate array for topics on the memory object.  Arrays
+    // in JavaScript are objects, so adding a custom property is safe.
+    memory.topics = [];
     // Conversation history: array of { user, reply } objects.
     let conversation = [];
 
@@ -281,20 +438,33 @@
     try {
       const storedMemory = JSON.parse(localStorage.getItem('egoMemory') || '[]');
       if (Array.isArray(storedMemory)) memory = storedMemory;
+      // Load stored topics if available.  They are persisted separately
+      // because JSON.stringify on an array does not include custom
+      // properties.  If the stored data is not an array, fall back to
+      // an empty list.
+      try {
+        const storedTopics = JSON.parse(localStorage.getItem('egoMemoryTopics') || '[]');
+        if (Array.isArray(storedTopics)) {
+          // Ensure memory.topics exists even if memory is replaced above.
+          memory.topics = storedTopics;
+        }
+      } catch (err) {
+        memory.topics = [];
+      }
       const storedConv = JSON.parse(localStorage.getItem('egoConversation') || '[]');
       if (Array.isArray(storedConv)) {
         conversation = storedConv;
         updateConversation();
       }
-      // Restore voice enabled setting (default true).  Hide the microphone
-      // button when voice is disabled.  localStorage stores values as
-      // strings; any value other than 'false' enables voice.
+      // Restore voice enabled setting (default true).  The stored value
+      // controls whether EgoMorph speaks responses via the synthesiser.
+      // Do not hide the microphone button based on this flag so that
+      // speech input remains available even when voice output is disabled.
       try {
         const ve = localStorage.getItem('voiceEnabled');
+        // localStorage stores booleans as strings; any value other than 'false'
+        // enables voice output.
         voiceEnabled = (ve !== 'false');
-        if (!voiceEnabled && speechButton) {
-          speechButton.style.display = 'none';
-        }
       } catch (err) {
         voiceEnabled = true;
       }
@@ -325,10 +495,40 @@
         userTrainingCount = 0;
       }
       if (memory.length > 0) {
-        memoryBox.textContent = translations[currentLanguage].memoryPrefix + ' ' + memory.join(' | ');
+        // Build a memory display string including topics when present.
+        let memStr = memory.join(' | ');
+        if (Array.isArray(memory.topics) && memory.topics.length > 0) {
+          memStr += ' [' + memory.topics.join(', ') + ']';
+        }
+        memoryBox.textContent = translations[currentLanguage].memoryPrefix + ' ' + memStr;
       }
       // Update the statistics display at load to reflect any restored values.
       updateStatsDisplay();
+
+      // Restore previously persisted emotion state.  If a stored emotion
+      // object exists in localStorage, apply its values to the current
+      // emotion tracker.  Clamp each value to the valid range (0–100) to
+      // avoid out‑of‑range values.  After restoring, immediately render
+      // the entity so its appearance matches the restored emotional state.
+      try {
+        const storedEmotion = JSON.parse(localStorage.getItem('egoEmotion') || 'null');
+        if (storedEmotion && typeof storedEmotion === 'object') {
+          for (const key in emotion) {
+            if (Object.prototype.hasOwnProperty.call(storedEmotion, key) && typeof storedEmotion[key] === 'number') {
+              emotion[key] = clamp(storedEmotion[key]);
+            }
+          }
+          // Render the entity to reflect the restored emotion values.  The
+          // function is declared later but hoisted, so it is safe to
+          // invoke here.  Wrap in a conditional check in case it is
+          // overridden or undefined.
+          if (typeof renderEntity === 'function') {
+            renderEntity();
+          }
+        }
+      } catch (err) {
+        // Ignore JSON parse errors or storage access issues
+      }
     } catch (e) {
       memory = [];
       conversation = [];
@@ -677,6 +877,10 @@
     translations.en.learningProgress = 'I misclassified this sentence the first time. Now I recognise it better!';
     translations.de.suggestionsIntro = 'Alternative Vorschläge:';
     translations.en.suggestionsIntro = 'Alternative suggestions:';
+
+    // Add installation button labels for the PWA installer
+    translations.de.installBtn = 'Installieren';
+    translations.en.installBtn = 'Install';
     // Names of the categories shown to the user for each language
     const categoryDisplayNames = {
       de: {
@@ -917,7 +1121,17 @@
       scale = Math.max(0.7, Math.min(1.5, scale));
       entity.style.background = `radial-gradient(circle at center, ${colour}, #111)`;
       entity.style.boxShadow = `0 0 40px ${colour}`;
-      entity.style.transform = `scale(${scale})`;
+      // Update the scale CSS variable instead of directly setting transform.
+      // This allows the shake animation (which also uses transform) to
+      // incorporate the scaling without conflict.  See the CSS rules for
+      // #entity and @keyframes shake.
+      entity.style.setProperty('--scale', scale);
+      // Apply a shaking animation when anger ('wut') is the dominant emotion.
+      if (dominant === 'wut') {
+        entity.classList.add('shake');
+      } else {
+        entity.classList.remove('shake');
+      }
       leftEye.style.width = rightEye.style.width = '20%';
       leftEye.style.background = rightEye.style.background = '#eee';
       let eyeHeight;
@@ -979,24 +1193,30 @@
           break;
       }
       leftEye.style.height = rightEye.style.height = eyeHeight;
+      // After updating the appearance, persist the current emotion vector to
+      // localStorage.  Storing the full emotion object allows EgoMorph to
+      // restore the same mood and facial colour on page reloads.  Wrap
+      // access in a try/catch to silently ignore quota or privacy errors.
+      try {
+        localStorage.setItem('egoEmotion', JSON.stringify(emotion));
+      } catch (err) {
+        // Ignore errors when localStorage is unavailable or blocked
+      }
     }
     /**
      * Text-to-speech using Web Speech API, with pitch/rate modulated by
      * dominant emotion.
      */
     function speak(text) {
-      // If voice output is disabled via settings, skip synthesising speech.
+      // If voice output is disabled or unavailable, abort early.
       if (!voiceEnabled) return;
       if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-      const synth = window.speechSynthesis;
       if (!text) return;
+      const synth = window.speechSynthesis;
+      // Cancel any ongoing utterances to avoid overlapping playback
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      const voices = synth.getVoices();
-      if (voices && voices.length > 0) {
-        const deVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('de'));
-        utterance.voice = deVoices.length ? deVoices[0] : voices[0];
-      }
+      // Determine the dominant emotion to modulate pitch and rate
       const { wut, vertrauen, freude, angst, traurigkeit, ueberraschung } = emotion;
       let dominantName = 'wut';
       let dominantValue = wut;
@@ -1016,14 +1236,30 @@
         case 'ueberraschung': utterance.pitch = 1.5; utterance.rate = 1.1; break;
         default: utterance.pitch = 1.0; utterance.rate = 1.0;
       }
-      // Adjust speech rate and pitch based on personality traits.
-      // The energy level controls the speed (rate) – higher energy means faster speech.
+      // Modify pitch and rate based on personality traits, if available
       if (typeof personality !== 'undefined') {
         utterance.rate *= Math.max(0.5, Math.min(1.5, personality.energy));
-        // Empathy influences pitch slightly – more empathy yields slightly higher pitch.
         utterance.pitch *= 1 + (personality.empathyLevel - 0.5) * 0.4;
       }
-      synth.speak(utterance);
+      // Helper to assign a suitable voice and speak the utterance.  If the
+      // list of available voices is empty (common on first invocation),
+      // wait for the 'voiceschanged' event before selecting a voice.  This
+      // prevents silent playback on some browsers.
+      function assignVoiceAndSpeak() {
+        const voices = synth.getVoices();
+        if (voices && voices.length > 0) {
+          // Prefer a German voice when available; otherwise fall back to the first voice.
+          const deVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('de'));
+          utterance.voice = deVoices.length ? deVoices[0] : voices[0];
+        }
+        synth.speak(utterance);
+      }
+      // If voices are not yet loaded, defer speaking until the voices list is ready.
+      if (!synth.getVoices().length) {
+        synth.addEventListener('voiceschanged', assignVoiceAndSpeak, { once: true });
+      } else {
+        assignVoiceAndSpeak();
+      }
     }
 
     // === Personality core and feedback management ===
@@ -1474,8 +1710,25 @@
       const corrName = categoryDisplayNames[currentLanguage][correct] || correct;
       // Fill the template
       const template = translations[currentLanguage].errorConfuse;
+      // If there is only a single recorded misclassification, avoid displaying the
+      // message permanently.  Only show confusion messages once the same
+      // confusion has occurred at least twice.  This prevents the hint
+      // "Ich verwechsle oft ..." from appearing after a single correction.
+      if (maxCount < 2) {
+        msgEl.textContent = '';
+        return;
+      }
       const filled = template.replace('{predicted}', predName).replace('{correct}', corrName);
+      // Clear any existing hide timer to avoid multiple timers stacking
+      if (msgEl._hideTimeout) {
+        clearTimeout(msgEl._hideTimeout);
+      }
       msgEl.textContent = filled;
+      // Automatically remove the message after 10 seconds so it does not linger
+      msgEl._hideTimeout = setTimeout(() => {
+        msgEl.textContent = '';
+        msgEl._hideTimeout = null;
+      }, 10000);
     }
 
     /**
@@ -2057,8 +2310,59 @@
       lastInputText = text;
       if (!text.trim()) return;
       input.value = '';
+      // Store this input in short-term memory.  Keep only the
+      // most recent five inputs to maintain a manageable context.
       memory.push(text);
       if (memory.length > 5) memory.shift();
+      // === Extract and store key nouns ===
+      // Use compromise.js to identify nouns in the user’s input.  These
+      // nouns capture names, places or other salient entities.  We
+      // normalise them to lower case and filter out empty values.
+      try {
+        let nouns = [];
+        // Attempt to use compromise.js if available.  The global `nlp`
+        // function is provided by the compromise library loaded in
+        // <head>.  If it is undefined or does not support noun
+        // extraction, this call will throw and fall back.
+        try {
+          const doc = (typeof nlp === 'function') ? nlp(text) : null;
+          if (doc && doc.nouns) {
+            nouns = doc.nouns().out('array');
+          }
+        } catch (ignore) {}
+        // Fallback: if no nouns were found, perform a very simple
+        // heuristic by selecting words that start with a capital letter
+        // (common for names and places in German) or are longer than 4
+        // characters.  Split on whitespace and filter out punctuation.
+        if (!Array.isArray(nouns) || nouns.length === 0) {
+          const words = text.split(/\s+/);
+          nouns = words.filter(w => {
+            // Remove leading and trailing punctuation/symbols.  Use a
+            // conservative character set to avoid unsupported regex features.
+            const clean = w.replace(/^[^a-zA-ZÄÖÜäöüß]+|[^a-zA-ZÄÖÜäöüß]+$/g, '');
+            if (!clean) return false;
+            // Define a small set of stopwords to ignore common function words.
+            const stopwords = ['ich','du','er','sie','wir','ihr','the','and','und','mit','das','die','der','in','an','auf'];
+            if (stopwords.includes(clean.toLowerCase())) return false;
+            // Consider words starting with an uppercase letter or words
+            // longer than five characters as potential nouns.
+            const firstChar = clean.charAt(0);
+            const isUpper = firstChar === firstChar.toUpperCase();
+            return isUpper || clean.length > 5;
+          });
+        }
+        if (Array.isArray(nouns)) {
+          nouns.map(n => n && n.trim().toLowerCase()).forEach(noun => {
+            if (!noun) return;
+            if (!memory.topics.includes(noun)) {
+              memory.topics.push(noun);
+              if (memory.topics.length > 10) memory.topics.shift();
+            }
+          });
+        }
+      } catch (err) {
+        // If noun extraction fails, simply ignore this step.
+      }
       // Predict the basic emotion distribution using our tiny neural model.
       try {
         const emotionResults = await predictEmotionDistribution(text);
@@ -2134,9 +2438,24 @@
       conversation.push({ user: text, reply: finalReply });
       if (conversation.length > 30) conversation.shift();
       updateConversation();
-      memoryBox.textContent = translations[currentLanguage].memoryPrefix + ' ' + memory.join(' | ');
+      // Update the memory display with both recent inputs and any
+      // extracted topics.  Topics are shown in brackets after the
+      // inputs, separated by commas.
+      {
+        let memStr = memory.join(' | ');
+        if (Array.isArray(memory.topics) && memory.topics.length > 0) {
+          memStr += ' [' + memory.topics.join(', ') + ']';
+        }
+        memoryBox.textContent = translations[currentLanguage].memoryPrefix + ' ' + memStr;
+      }
       try {
         localStorage.setItem('egoMemory', JSON.stringify(memory));
+        // Persist topics separately since custom properties on arrays are
+        // not included when stringifying.  If memory.topics does not
+        // exist, default to an empty array.  This call ensures the
+        // extracted nouns survive page reloads.
+        const topicsToStore = Array.isArray(memory.topics) ? memory.topics : [];
+        localStorage.setItem('egoMemoryTopics', JSON.stringify(topicsToStore));
         localStorage.setItem('egoConversation', JSON.stringify(conversation));
       } catch (e) {}
       // Speak the final reply (if voice is enabled).
@@ -2161,6 +2480,17 @@
       } catch (e) {
         /* ignore storage errors */
       }
+      // Also reset any accumulated misclassification statistics so that
+      // lingering confusion messages are cleared.  The confusion counts
+      // are persisted separately and need to be reset explicitly.
+      misclassificationCounts = {};
+      try {
+        localStorage.setItem('misclassificationCounts', JSON.stringify(misclassificationCounts));
+      } catch (e) {
+        /* ignore storage errors */
+      }
+      // Update the error statistics display to reflect the cleared state.
+      updateErrorStatsMessage();
     }
     /**
      * Toggle voice input and output on/off.  When disabled, the microphone
@@ -2168,16 +2498,14 @@
      * The setting is persisted to localStorage.
      */
     function toggleVoice() {
+      // Toggle whether EgoMorph will speak its replies via speech synthesis.
       voiceEnabled = !voiceEnabled;
-      if (speechButton) {
-        if (recognition) {
-          speechButton.style.display = voiceEnabled ? 'inline-block' : 'none';
-        }
-      }
+      // Persist the flag.  Do not hide the microphone here; the microphone
+      // remains available for voice input regardless of this setting.
       try {
         localStorage.setItem('voiceEnabled', voiceEnabled ? 'true' : 'false');
       } catch (e) {
-        /* ignore */
+        /* ignore storage errors */
       }
     }
     // Register event listeners after page load for settings UI controls.
@@ -2203,7 +2531,38 @@
         const custom = getCustomResponses();
         const selectedKey = customEmotionSelect.value;
         const list = Array.isArray(custom[selectedKey]) ? custom[selectedKey] : [];
-        customResponseList.textContent = list.map((r, i) => `${i + 1}. ${r}`).join('\n');
+        // Clear existing entries
+        customResponseList.innerHTML = '';
+        // Build a list of responses with individual remove buttons so that
+        // the user can delete specific custom responses.  Each item is
+        // represented by a <div> with the text and a small button.  When
+        // the button is clicked, the entry is removed from both the
+        // persisted custom response storage and the live categories.
+        list.forEach((resp, i) => {
+          const item = document.createElement('div');
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.marginBottom = '2px';
+          const span = document.createElement('span');
+          span.textContent = `${i + 1}. ${resp}`;
+          span.style.flexGrow = '1';
+          const btn = document.createElement('button');
+          btn.textContent = '✖';
+          btn.className = 'remove-response';
+          btn.dataset.index = i;
+          // Styling for the remove button to match the dark theme
+          btn.style.background = '#444';
+          btn.style.color = '#eee';
+          btn.style.border = 'none';
+          btn.style.padding = '2px 6px';
+          btn.style.cursor = 'pointer';
+          btn.style.marginLeft = '5px';
+          // Append elements
+          item.appendChild(span);
+          item.appendChild(btn);
+          customResponseList.appendChild(item);
+        });
       }
 
       // Toggle display of the info panel when the info button is clicked.
@@ -2241,6 +2600,35 @@
         });
       }
 
+      // Allow users to remove individual custom responses by clicking the ✖ button
+      // next to each entry.  Use event delegation so that the handler
+      // attaches once and works for dynamically created buttons.
+      if (customResponseList && customEmotionSelect) {
+        customResponseList.addEventListener('click', (e) => {
+          const target = e.target;
+          if (target && target.classList.contains('remove-response')) {
+            const idx = parseInt(target.dataset.index, 10);
+            if (isNaN(idx)) return;
+            const key = customEmotionSelect.value;
+            const custom = getCustomResponses();
+            const list = Array.isArray(custom[key]) ? custom[key] : [];
+            if (idx >= 0 && idx < list.length) {
+              // Remove the selected response from the custom array
+              const [removed] = list.splice(idx, 1);
+              custom[key] = list;
+              saveCustomResponses(custom);
+              // Also remove it from the live categories responses list
+              const catKey = emotionCategoryMap[key];
+              if (catKey && categories[catKey]) {
+                // Remove all instances of the response from the responses array
+                categories[catKey].responses = categories[catKey].responses.filter(r => r !== removed);
+              }
+              updateCustomList();
+            }
+          }
+        });
+      }
+
       // Populate the custom responses list once on load.
       updateCustomList();
       if (settingsToggle && settingsPanel) {
@@ -2254,11 +2642,16 @@
         });
       }
       if (toggleBtn) {
-        // Set the initial button text based on current state.
-        toggleBtn.textContent = voiceEnabled ? 'Stimme deaktivieren' : 'Stimme aktivieren';
+        // Set the initial button text based on current state and language.
+        toggleBtn.textContent = voiceEnabled
+          ? translations[currentLanguage].voiceDeactivate
+          : translations[currentLanguage].voiceActivate;
         toggleBtn.addEventListener('click', () => {
           toggleVoice();
-          toggleBtn.textContent = voiceEnabled ? 'Stimme deaktivieren' : 'Stimme aktivieren';
+          // Update the button text after toggling using the translation dictionary.
+          toggleBtn.textContent = voiceEnabled
+            ? translations[currentLanguage].voiceDeactivate
+            : translations[currentLanguage].voiceActivate;
         });
       }
       if (downloadBtn) {
@@ -2315,6 +2708,50 @@
     // Initial render to set up eyes/mouth.
     renderEntity();
 
+    // === Gaze tracking with mouse movement ===
+    // Listen for pointer movements and update pupil positions relative to
+    // each eye.  The offset is calculated based on the pointer’s
+    // displacement from the centre of each eye and clamped so the pupils
+    // remain inside the whites.  Multiplying by 50% converts the
+    // normalised offset into percentage translation values.  This
+    // handler runs continuously and leverages the short CSS transition
+    // defined on `.pupil` for smooth movement.
+    document.addEventListener('mousemove', (ev) => {
+      // Only proceed if pupils and eyes are available.
+      if (!leftEye || !rightEye || !leftPupil || !rightPupil) return;
+      // Helper function to update a single eye’s pupil position.  This
+      // implementation adjusts the CSS left/top properties rather than
+      // using transform.  Starting from a base of 30%, the pupil can
+      // move up to ±10% of the eye’s width/height along each axis.
+      const updatePupilPos = (eyeEl, pupilEl) => {
+        const rect = eyeEl.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        // Normalise displacement relative to eye size
+        let dx = (ev.clientX - cx) / rect.width;
+        let dy = (ev.clientY - cy) / rect.height;
+        // Clamp to avoid leaving the whites
+        const maxOffset = 0.5;
+        dx = Math.max(-maxOffset, Math.min(maxOffset, dx));
+        dy = Math.max(-maxOffset, Math.min(maxOffset, dy));
+        // Compute new top/left positions as percentages.  Base position
+        // centres the pupil at 30% top/left; we add up to ±10% shift.
+        // Base position corresponds to the initial left/top defined in the CSS (25%).
+        const basePos = 25;
+        // Allow the pupil to move further away from the centre by
+        // increasing the range.  A range of 20 permits ±10% offsets
+        // relative to the base position, providing a more noticeable
+        // movement across the eye.
+        const range = 20;
+        const newLeft = basePos + dx * range;
+        const newTop = basePos + dy * range;
+        pupilEl.style.left = `${newLeft}%`;
+        pupilEl.style.top = `${newTop}%`;
+      };
+      updatePupilPos(leftEye, leftPupil);
+      updatePupilPos(rightEye, rightPupil);
+    });
+
     // Anleitung zum Hinzufügen neuer Emotionen:
     //
     // Um zusätzliche Emotionen wie "angst" oder "ueberraschung" zu integrieren,
@@ -2326,6 +2763,57 @@
     // 3. Beim nächsten Laden der Seite werden Vokabular und Modelle automatisch
     //    aktualisiert und trainiert.  Die Speicherung erfolgt im Browser,
     //    sodass neu gelernte Modelle wiederverwendet werden.
+  // ====== PWA and Welcome Modal Setup ======
+  document.addEventListener('DOMContentLoaded', () => {
+    // Show welcome message once
+    const modal = document.getElementById('welcomeModal');
+    const closeBtn = document.getElementById('closeModalBtn');
+    if (modal) {
+      if (localStorage.getItem('welcomeShown')) {
+        modal.style.display = 'none';
+      } else {
+        modal.style.display = 'flex';
+      }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          modal.style.display = 'none';
+          localStorage.setItem('welcomeShown', 'true');
+        });
+      }
+    }
+    // Prepare installation button for PWA
+    const installBtn = document.createElement('button');
+    installBtn.id = 'installBtn';
+    if (typeof translations !== 'undefined' && translations[currentLanguage] && translations[currentLanguage].installBtn) {
+      installBtn.textContent = translations[currentLanguage].installBtn;
+    } else {
+      installBtn.textContent = 'Installieren';
+    }
+    const inputSection = document.getElementById('inputSection');
+    if (inputSection) {
+      inputSection.insertBefore(installBtn, inputSection.firstChild);
+    }
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.log('Service worker registration failed:', err);
+      });
+    }
+  });
   </script>
 </body>
 </html>
