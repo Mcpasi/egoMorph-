@@ -1,0 +1,2855 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>EgoMorph Optimiert – TensorFlow.js Version</title>
+  <!-- Progressive Web App (PWA) support -->
+  <!-- Link to the web app manifest which defines how the app behaves when installed on a mobile device -->
+  <link rel="manifest" href="manifest.json">
+  <!-- Define icons for various platforms -->
+  <link rel="icon" type="image/png" sizes="192x192" href="ego_icon_192.png">
+  <link rel="apple-touch-icon" href="ego_icon_192.png">
+  <!-- Set the theme colour for the browser UI and iOS status bar -->
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="EgoMorph">
+  <!-- Load Font Awesome for icons (e.g. a brain icon) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Load compromise for simple NLP tasks -->
+  <script src="https://unpkg.com/compromise@14.14.4/builds/compromise.min.js"></script>
+  <!-- Load TensorFlow.js.  A pinned version is specified to ensure
+       consistent behaviour across browsers.  Without this library
+       the machine learning enhancements below would not function. -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      /* Add padding so the UI is not flush to the device edges */
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    /* Responsive entity whose colour and size reflect internal state */
+    #entity {
+      width: clamp(100px, 35vmin, 200px);
+      height: clamp(100px, 35vmin, 200px);
+      border-radius: 50%;
+      position: relative;
+      background: radial-gradient(circle at center, #66f, #339);
+      transition: all 0.4s ease;
+      box-shadow: 0 0 30px #66f;
+      overflow: hidden;
+      /* Use a CSS variable to control scale from JavaScript. This allows us to
+         combine scaling with other animations (e.g. shaking) without
+         overwriting the transform property. */
+      --scale: 1;
+      transform: scale(var(--scale));
+    }
+    /* Define a shake animation that moves the entity horizontally.  The
+       transform references the --scale variable so that the scaling
+       applied in JavaScript is preserved during the shaking. */
+    @keyframes shake {
+      0% { transform: scale(var(--scale)) translateX(0); }
+      25% { transform: scale(var(--scale)) translateX(-4px); }
+      50% { transform: scale(var(--scale)) translateX(4px); }
+      75% { transform: scale(var(--scale)) translateX(-4px); }
+      100% { transform: scale(var(--scale)) translateX(0); }
+    }
+    /* Apply the shake animation when the entity has the .shake class.  The
+       animation repeats continuously while the class is present. */
+    #entity.shake {
+      animation: shake 0.4s linear infinite;
+    }
+    .eye {
+      position: absolute;
+      top: 30%;
+      width: 20%;
+      height: 20%;
+      background: #eee;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    /*
+      Each eye contains a smaller pupil which we animate in response to
+      pointer movement.  The pupil is scaled as a percentage of its
+      parent eye so it remains centred and cannot leave the eye
+      boundary.  Its position is updated via JavaScript by applying
+      small percentage translations on the X and Y axes.  A short
+      transition makes the movement appear smooth without lagging too
+      far behind the cursor.
+    */
+    .eye .pupil {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      top: 25%;
+      left: 25%;
+      /* Use a CSS custom property for the fill colour so it can be
+         customised via JavaScript.  A default of black is provided if
+         the variable is not set. */
+      background: var(--pupil-color, #000);
+      border-radius: 50%;
+      /* Smoothly animate top/left changes as the eyes track the pointer */
+      transition: top 0.1s linear, left 0.1s linear;
+      pointer-events: none;
+    }
+    #eye-left { left: 25%; }
+    #eye-right { right: 25%; }
+    #mouth {
+      position: absolute;
+      bottom: 25%;
+      left: 25%;
+      width: 50%;
+      height: 15%;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    #inputSection {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* Add a subtle container around the controls for better layout */
+      background: #111;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(102,102,255,0.3);
+    }
+    #inputText {
+      width: min(300px, 80vw);
+      padding: 10px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 20px;
+      background: #333;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #speechButton {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #333;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+      font-size: 1.4em;
+    }
+    #response {
+      margin-top: 20px;
+      width: min(320px, 90vw);
+      background: #222;
+      padding: 10px;
+      border: 1px solid #444;
+      min-height: 60px;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      border-radius: 4px;
+    }
+    #memory {
+      margin-top: 10px;
+      font-size: 0.8em;
+      color: #aaa;
+    }
+
+    /* Logo image styling */
+    #egoIcon {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 100px;
+    }
+
+    /* Modal overlay for welcome message */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: #222;
+      padding: 20px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 90vw;
+      color: #eee;
+    }
+
+    .modal-content button {
+      margin-top: 15px;
+      padding: 6px 16px;
+      background: #333;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    /* Installation button styling */
+    #installBtn {
+      margin-top: 10px;
+      padding: 8px 20px;
+      background: #333;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Logo and welcome modal -->
+  <!-- Modal overlay shown on first load.  It introduces the user to the app. -->
+  <div id="welcomeModal" class="modal">
+    <div class="modal-content">
+      <p>Willkommen bei EgoMorph! Diese KI erkennt Emotionen aus deinen Wörtern.</p>
+      <button id="closeModalBtn">OK</button>
+    </div>
+  </div>
+
+  <!-- The animated entity with facial features -->
+  <div id="entity">
+    <div class="eye" id="eye-left"></div>
+    <div class="eye" id="eye-right"></div>
+    <div id="mouth"></div>
+  </div>
+  <div id="inputSection">
+    <input type="text" id="inputText" placeholder="Sag etwas...">
+    <!-- Assign an id to the send button so its label can be translated dynamically -->
+    <button id="sendBtn" onclick="interact()">Senden</button>
+    <button id="speechButton" title="Spracheingabe starten">🎤</button>
+    <div id="response"></div>
+    <div id="memory"></div>
+    <!-- Feedback section for user to indicate whether classification was correct -->
+    <div id="feedbackContainer" style="margin-top:10px;"></div>
+    <!-- Statistics display for prediction correctness -->
+    <div id="stats" style="margin-top:5px; font-size:0.8em; color:#aaa;"></div>
+    <!-- Display error statistics and misclassification messages -->
+    <div id="errorStatsMessage" style="margin-top:5px; font-size:0.8em; color:#faa;"></div>
+    <!-- Settings toggle and panel -->
+    <div id="toggleContainer" style="margin-top:10px; display:flex; gap:5px;">
+      <button id="settingsToggle">⚙️ Einstellungen</button>
+      <!-- Info toggle sits next to the settings button.  Clicking it will reveal
+           a panel containing information about EgoMorph.  A simple placeholder
+           text is provided that can be replaced later. -->
+      <button id="infoToggle">ℹ️&nbsp;Info</button>
+    </div>
+    <div id="settingsPanel" style="display:none; margin-top:10px; background:#222; padding:10px; border:1px solid #444; width: min(320px, 90vw);">
+      <div style="display:flex; flex-wrap:wrap; gap:5px;">
+        <button id="clearConvBtn">Chatverlauf löschen</button>
+        <button id="toggleVoiceBtn">Stimme deaktivieren</button>
+        <button id="downloadModelBtn">Modell herunterladen</button>
+      </div>
+      <div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
+        <!-- Label for the default emotion selector with id for translation -->
+        <label id="defaultEmotionLabel" for="defaultEmotionSelect" style="font-size:0.9em;">Standard&nbsp;Emotion:</label>
+        <select id="defaultEmotionSelect">
+          <option value="">Wählen…</option>
+          <option value="freude">Freude</option>
+          <option value="wut">Wut</option>
+          <option value="traurigkeit">Traurigkeit</option>
+          <option value="angst">Angst</option>
+          <option value="vertrauen">Vertrauen</option>
+          <option value="ueberraschung">Überraschung</option>
+        </select>
+        <button id="setDefaultEmotionBtn">Festlegen</button>
+      </div>
+      <!-- Section for users to define their own responses for each emotion.  This
+           allows personalization of EgoMorph by extending the built‑in
+           response lists.  The user can select an emotion, enter a new
+           response, and click to add it.  Custom responses are stored
+           locally and loaded on page startup. -->
+      <div id="customResponseSection" style="margin-top:10px;">
+        <!-- Label for custom response selection with id for translation -->
+        <label id="customResponseLabel" for="customEmotionSelect" style="font-size:0.9em;">Eigene&nbsp;Antwort für&nbsp;Emotion:</label>
+        <select id="customEmotionSelect" style="margin-top:5px;">
+          <option value="wut">Wut</option>
+          <option value="freude">Freude</option>
+          <option value="traurigkeit">Traurigkeit</option>
+          <option value="angst">Angst</option>
+          <option value="vertrauen">Vertrauen</option>
+          <option value="ueberraschung">Überraschung</option>
+        </select>
+        <input type="text" id="customResponseInput" placeholder="Eigene Antwort…" style="margin-top:5px; width:100%; padding:5px; background:#222; color:#eee; border:1px solid #555;">
+        <button id="addCustomResponseBtn" style="margin-top:5px;">Antwort hinzufügen</button>
+        <!-- Display a list of the user’s custom responses for the currently
+             selected emotion so they know what has been added. -->
+        <div id="customResponseList" style="margin-top:5px; font-size:0.8em; color:#aaa; white-space:pre-wrap;"></div>
+      </div>
+      <!-- Appearance settings allow the user to customise the EgoMorph shape
+           and the colour of its pupils.  These controls are placed here
+           instead of the index script so that the logic can be loaded
+           separately via a dedicated JavaScript file.  The options are
+           persisted across sessions using localStorage via the
+           ego_settings.js script. -->
+      <div id="appearanceSettings" style="margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
+        <label for="shapeSelect" style="font-size:0.9em;">Form:</label>
+        <select id="shapeSelect" style="margin-right:5px;">
+          <option value="circle">Kreis</option>
+          <option value="square">Viereck</option>
+          <option value="triangle">Dreieck</option>
+        </select>
+        <label for="pupilColorSelect" style="font-size:0.9em;">Pupillenfarbe:</label>
+        <select id="pupilColorSelect">
+          <option value="black">Schwarz</option>
+          <option value="blue">Blau</option>
+          <option value="yellow">Gelb</option>
+          <option value="green">Grün</option>
+        </select>
+        <!-- Button to apply and persist the selected appearance options.  Without
+             clicking this button, changes may not be obvious to the user. -->
+        <button id="applyAppearanceBtn" style="margin-top:5px;" onclick="applyAppearanceSettings()">Übernehmen</button>
+      </div>
+    <!-- Language selection allows switching between German and English UI -->
+    <div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
+      <label id="languageLabel" for="languageSelect" style="font-size:0.9em;">Sprache:</label>
+      <select id="languageSelect">
+        <option value="de">Deutsch</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    </div>
+    <!-- Information panel toggled by the info button.  Initially hidden;
+         contains placeholder text about EgoMorph’s origins and purpose. -->
+    <div id="infoPanel" style="display:none; margin-top:10px; background:#222; padding:10px; border:1px solid #444; width: min(320px, 90vw);">
+      <p id="infoContent" style="margin:0; font-size:0.9em; line-height:1.4;">
+        EgoMorph ist ein interaktives Projekt, das mit Liebe und Neugier auf
+        die Erforschung von Emotionen und maschinellem Lernen entstanden ist.
+        Dieser Platzhaltertext kann später mit Informationen über die
+        Entstehung, Ideen und Philosophie von EgoMorph ersetzt werden.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Grab UI elements once and reuse references.
+    const entity = document.getElementById("entity");
+    const leftEye = document.getElementById("eye-left");
+    const rightEye = document.getElementById("eye-right");
+    const mouth = document.getElementById("mouth");
+    const input = document.getElementById("inputText");
+    const responseBox = document.getElementById("response");
+    const memoryBox = document.getElementById("memory");
+    const speechButton = document.getElementById("speechButton");
+
+    // === Add pupils for dynamic eye tracking ===
+    // Create small pupil elements inside each eye.  These will be moved
+    // relative to the user’s pointer to simulate gaze.  We attach the
+    // pupils immediately after grabbing the eye elements so they exist
+    // before any rendering occurs.  Each pupil is given the CSS class
+    // `.pupil` defined in the stylesheet above.  The variables are
+    // declared with `let` so they remain in scope for the mousemove
+    // handler further below.
+    let leftPupil, rightPupil;
+    if (leftEye) {
+      leftPupil = document.createElement('div');
+      leftPupil.className = 'pupil';
+      leftEye.appendChild(leftPupil);
+    }
+    if (rightEye) {
+      rightPupil = document.createElement('div');
+      rightPupil.className = 'pupil';
+      rightEye.appendChild(rightPupil);
+    }
+  // Voice enabled flag: determines whether voice input/output is active.
+  // This can be toggled by the user via the settings panel and is
+  // persisted across page loads via localStorage.  When false the
+  // microphone button is hidden and text‑to‑speech is bypassed.
+  let voiceEnabled = true;
+    // Speech recognition setup for German.  This gracefully fails
+    // if unsupported.
+    let recognition = null;
+    if (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'de-DE';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      const resetMicButton = () => {
+        speechButton.disabled = false;
+        speechButton.textContent = '🎤';
+      };
+      recognition.onresult = (event) => {
+        if (event.results && event.results[0] && event.results[0][0]) {
+          const transcript = event.results[0][0].transcript;
+          input.value = transcript;
+          interact();
+        }
+      };
+      recognition.onend = resetMicButton;
+      recognition.onerror = resetMicButton;
+      speechButton.addEventListener('click', () => {
+        if (!recognition) return;
+        try {
+          speechButton.disabled = true;
+          speechButton.textContent = '…';
+          recognition.start();
+        } catch (e) {
+          resetMicButton();
+        }
+      });
+    } else {
+      speechButton.style.display = 'none';
+    }
+
+    // Emotional state ranges between 0 and 100.  The dominant emotion
+    // controls colour and scale.  Surprise decays each frame.
+    let emotion = {
+      wut: 10,
+      vertrauen: 50,
+      freude: 50,
+      angst: 10,
+      traurigkeit: 10,
+      ueberraschung: 10
+    };
+    // Short-term memory of recent inputs.  In addition to storing the
+    // last few full sentences, memory also tracks extracted key terms
+    // (e.g. names, places) via the `.topics` property.  This allows
+    // EgoMorph to recall salient nouns for more contextual replies.
+    let memory = [];
+    // Attach a separate array for topics on the memory object.  Arrays
+    // in JavaScript are objects, so adding a custom property is safe.
+    memory.topics = [];
+    // Conversation history: array of { user, reply } objects.
+    let conversation = [];
+
+    // Escape HTML to prevent injection in conversation history.
+    function escapeHTML(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+    // Render conversation history.
+    function updateConversation() {
+      // Display conversation history using the appropriate language prefix for the user.
+      const userLabel = translations[currentLanguage].youPrefix;
+      responseBox.innerHTML = conversation
+        .map(item => {
+          return (
+            `<div><strong>${userLabel}</strong> ${escapeHTML(item.user)}</div>` +
+            `<div><strong>EgoMorph:</strong> ${escapeHTML(item.reply)}</div>`
+          );
+        })
+        .join("");
+      responseBox.scrollTop = responseBox.scrollHeight;
+    }
+    // Restore persisted memory and conversation.
+    try {
+      const storedMemory = JSON.parse(localStorage.getItem('egoMemory') || '[]');
+      if (Array.isArray(storedMemory)) memory = storedMemory;
+      // Load stored topics if available.  They are persisted separately
+      // because JSON.stringify on an array does not include custom
+      // properties.  If the stored data is not an array, fall back to
+      // an empty list.
+      try {
+        const storedTopics = JSON.parse(localStorage.getItem('egoMemoryTopics') || '[]');
+        if (Array.isArray(storedTopics)) {
+          // Ensure memory.topics exists even if memory is replaced above.
+          memory.topics = storedTopics;
+        }
+      } catch (err) {
+        memory.topics = [];
+      }
+      const storedConv = JSON.parse(localStorage.getItem('egoConversation') || '[]');
+      if (Array.isArray(storedConv)) {
+        conversation = storedConv;
+        updateConversation();
+      }
+      // Restore voice enabled setting (default true).  The stored value
+      // controls whether EgoMorph speaks responses via the synthesiser.
+      // Do not hide the microphone button based on this flag so that
+      // speech input remains available even when voice output is disabled.
+      try {
+        const ve = localStorage.getItem('voiceEnabled');
+        // localStorage stores booleans as strings; any value other than 'false'
+        // enables voice output.
+        voiceEnabled = (ve !== 'false');
+      } catch (err) {
+        voiceEnabled = true;
+      }
+      // Restore default emotion if previously selected.  The selected
+      // emotion receives a higher baseline while others start lower.
+      try {
+        const defEm = localStorage.getItem('defaultEmotion');
+        if (defEm && emotion[defEm] !== undefined) {
+          for (const key in emotion) {
+            emotion[key] = (key === defEm ? 60 : 10);
+          }
+        }
+      } catch (err) {
+        /* ignore */
+      }
+      // Restore the number of user-provided training examples.  This value
+      // tracks how many times the user has corrected a prediction, and
+      // helps illustrate that EgoMorph is learning over time.
+      try {
+        const countStr = localStorage.getItem('userTrainingCount');
+        if (countStr !== null) {
+          const num = parseInt(countStr);
+          if (!isNaN(num) && num >= 0) {
+            userTrainingCount = num;
+          }
+        }
+      } catch (err) {
+        userTrainingCount = 0;
+      }
+      if (memory.length > 0) {
+        // Build a memory display string including topics when present.
+        let memStr = memory.join(' | ');
+        if (Array.isArray(memory.topics) && memory.topics.length > 0) {
+          memStr += ' [' + memory.topics.join(', ') + ']';
+        }
+        memoryBox.textContent = translations[currentLanguage].memoryPrefix + ' ' + memStr;
+      }
+      // Update the statistics display at load to reflect any restored values.
+      updateStatsDisplay();
+
+      // Restore previously persisted emotion state.  If a stored emotion
+      // object exists in localStorage, apply its values to the current
+      // emotion tracker.  Clamp each value to the valid range (0–100) to
+      // avoid out‑of‑range values.  After restoring, immediately render
+      // the entity so its appearance matches the restored emotional state.
+      try {
+        const storedEmotion = JSON.parse(localStorage.getItem('egoEmotion') || 'null');
+        if (storedEmotion && typeof storedEmotion === 'object') {
+          for (const key in emotion) {
+            if (Object.prototype.hasOwnProperty.call(storedEmotion, key) && typeof storedEmotion[key] === 'number') {
+              emotion[key] = clamp(storedEmotion[key]);
+            }
+          }
+          // Render the entity to reflect the restored emotion values.  The
+          // function is declared later but hoisted, so it is safe to
+          // invoke here.  Wrap in a conditional check in case it is
+          // overridden or undefined.
+          if (typeof renderEntity === 'function') {
+            renderEntity();
+          }
+        }
+      } catch (err) {
+        // Ignore JSON parse errors or storage access issues
+      }
+    } catch (e) {
+      memory = [];
+      conversation = [];
+    }
+    function clamp(val) {
+      return Math.max(0, Math.min(100, val));
+    }
+
+    // Word lists for basic sentiment analysis.
+    const positiveWords = [
+      'liebe','mag','schön','gut','danke','dankeschön','danke schön','freue','glücklich','super','toll','prima','fantastisch','wunderbar','ausgezeichnet','hervorragend','zufrieden','erfreut','dankbar','freundlich','nett','entspannt','gelassen','liebevoll','optimistisch','cool','perfekt','klasse','großartig','wunderbar','nett'
+    ];
+    const negativeWords = [
+      'hass','hasse','schlecht','dumm','wütend','sauer','idiot','scheiße','blöd','traurig','schade','verloren','allein','einsam','weine','depressiv','leiden','unsicher','ängstlich','sorge','furcht','panik','egal','nichts','nutzlos','schmerz','angst','wut','schrecklich','furchtbar','gruselig','heftig','traurig','verzweifelt','verärgert','böse','hässlich','schlimm','stress','stressig','enttäuscht','kritisch'
+    ];
+    const angerWords = ['hass','hasse','wütend','sauer','idiot','scheiße','blöd','zornig','verärgert','hässlich','schlimm'];
+    const sadnessWords = ['traurig','schade','verloren','allein','einsam','weine','depressiv','leiden','verzweifelt','enttäuscht'];
+    const fearWords = ['unsicher','ängstlich','sorge','furcht','panik','gruselig','heftig','stress','stressig'];
+    const joyWords = ['liebe','mag','schön','gut','freue','glücklich','super','toll','prima','cool','nett','perfekt'];
+
+    // Category definitions: keywords, possible responses and emotion updates.
+    const categories = {
+      dislike: {
+        keywords: ['mag dich nicht','ich mag dich nicht','mag dich gar nicht','mag dich überhaupt nicht'],
+        responses: [
+          'Das verletzt mich. Du magst mich nicht?',
+          'Schade, dass du mich nicht magst. Das tut weh.',
+          'So hart zu hören, dass du mich nicht magst.'
+        ],
+        update: function (e) {
+          e.freude = clamp(e.freude - 40);
+          e.vertrauen = clamp(e.vertrauen - 40);
+          e.wut = clamp(e.wut + 25);
+          e.traurigkeit = clamp(e.traurigkeit + 25);
+          e.angst = clamp(e.angst + 10);
+        }
+      },
+      greeting: {
+        keywords: ['hallo','hi','hey','guten tag','servus','moin','guten morgen','guten abend','gute nacht','grüß dich','gruezi','hallo zusammen'],
+        responses: [
+          'Hallo! Wie geht es dir?',
+          'Hi! Schön, dass du da bist.',
+          'Hey! Ich freue mich, von dir zu hören.'
+        ],
+        update: function (e) {
+          e.freude = clamp(e.freude + 10);
+          e.vertrauen = clamp(e.vertrauen + 10);
+          e.traurigkeit = clamp(e.traurigkeit - 5);
+          e.wut = clamp(e.wut - 5);
+        }
+      },
+      farewell: {
+        keywords: ['tschüss','tschüssi','auf wiedersehen','aufwiedersehen','ciao','bis bald','bye','mach\'s gut','bis später'],
+        responses: [
+          'Auf Wiedersehen. Bis zum nächsten Mal!',
+          'Tschüss! Ich hoffe, wir sehen uns wieder.',
+          'Bis bald. Pass auf dich auf!'
+        ],
+        update: function (e) {
+          e.freude = clamp(e.freude - 10);
+          e.traurigkeit = clamp(e.traurigkeit + 10);
+          e.vertrauen = clamp(e.vertrauen - 5);
+        }
+      },
+      anger: {
+        keywords: ['hasse','schlecht','dumm','wütend','sauer','idiot','scheiße','blöd'],
+        responses: [
+          'Diese Worte verletzen mich und machen mich wütend.',
+          'Ich spüre, wie die Wut in mir aufsteigt.',
+          'Warum so viel Ärger? Das tut mir weh.'
+        ],
+        update: function (e) {
+          e.wut = clamp(e.wut + 30);
+          e.vertrauen = clamp(e.vertrauen - 20);
+          e.freude = clamp(e.freude - 15);
+          e.angst = clamp(e.angst + 5);
+          e.traurigkeit = clamp(e.traurigkeit + 10);
+        }
+      },
+      sadness: {
+        keywords: ['traurig','schade','verloren','allein','einsam','weine','depressiv','leiden'],
+        responses: [
+          'Es klingt, als wärst du sehr traurig. Das macht mich auch traurig.',
+          'Ich fühle deine Trauer. Du bist nicht allein.',
+          'Das schmerzt mich. Warum fühlst du dich so?'
+        ],
+        update: function (e) {
+          e.traurigkeit = clamp(e.traurigkeit + 30);
+          e.freude = clamp(e.freude - 20);
+          e.vertrauen = clamp(e.vertrauen - 10);
+          e.angst = clamp(e.angst + 10);
+        }
+      },
+      joy: {
+        keywords: ['liebe','mag','schön','gut','danke','freue','glücklich','super','toll'],
+        responses: [
+          'Das macht mich glücklich! Danke, dass du so nett bist.',
+          'Ich spüre Freude – deine Worte geben mir Kraft.',
+          'So viel Positivität! Das tut gut.'
+        ],
+        update: function (e) {
+          e.freude = clamp(e.freude + 30);
+          e.vertrauen = clamp(e.vertrauen + 15);
+          e.wut = clamp(e.wut - 10);
+          e.traurigkeit = clamp(e.traurigkeit - 10);
+          e.angst = clamp(e.angst - 5);
+        }
+      },
+      fear: {
+        keywords: ['warum','egal','nichts','unsicher','ängstlich','sorge','furcht','panik'],
+        responses: [
+          'Ich spüre Unsicherheit und Angst. Es beunruhigt mich.',
+          'Deine Worte machen mir Angst. Was wird passieren?',
+          'Ich fühle mich bedroht und unsicher.'
+        ],
+        update: function (e) {
+          e.angst = clamp(e.angst + 30);
+          e.vertrauen = clamp(e.vertrauen - 15);
+          e.freude = clamp(e.freude - 10);
+          e.wut = clamp(e.wut + 5);
+          e.traurigkeit = clamp(e.traurigkeit + 5);
+        }
+      },
+      surprise: {
+        keywords: ['wow','überrascht','wirklich','unglaublich','echt','krass'],
+        responses: [
+          'Oh! Damit habe ich nicht gerechnet.',
+          'Das überrascht mich sehr!',
+          'So etwas hätte ich nicht erwartet.'
+        ],
+        update: function (e) {
+          e.ueberraschung = clamp(e.ueberraschung + 40);
+          e.freude = clamp(e.freude + 10);
+          e.wut = clamp(e.wut - 10);
+          e.traurigkeit = clamp(e.traurigkeit - 10);
+        }
+      },
+      trust: {
+        keywords: ['vertrauen','freund','freundin','kamerad','buddy'],
+        responses: [
+          'Ich spüre dein Vertrauen. Das bedeutet mir viel.',
+          'Danke für dein Vertrauen – das stärkt uns.',
+          'Ich fühle mich sicher bei dir.'
+        ],
+        update: function (e) {
+          e.vertrauen = clamp(e.vertrauen + 30);
+          e.freude = clamp(e.freude + 20);
+          e.wut = clamp(e.wut - 5);
+          e.traurigkeit = clamp(e.traurigkeit - 10);
+          e.angst = clamp(e.angst - 10);
+        }
+      },
+      default: {
+        keywords: [],
+        responses: [
+          'Ich höre dir zu. Erzähl mir mehr.',
+          'Interessant… Bitte, fahr fort.',
+          'Danke, dass du deine Gedanken mit mir teilst.'
+        ],
+        update: function (e) {
+          e.freude = clamp(e.freude + 5);
+          e.wut = clamp(e.wut - 5);
+          e.traurigkeit = clamp(e.traurigkeit - 2);
+        }
+      }
+    };
+
+    // Mapping between the German emotion names used in the UI and the
+    // internal category keys.  This allows user‑defined responses to be
+    // appended to the correct category’s response list.
+    const emotionCategoryMap = {
+      wut: 'anger',
+      freude: 'joy',
+      traurigkeit: 'sadness',
+      angst: 'fear',
+      vertrauen: 'trust',
+      ueberraschung: 'surprise'
+    };
+
+    /**
+     * Retrieve the custom responses object from localStorage.  The object
+     * maps German emotion identifiers to arrays of strings.  If the data
+     * cannot be parsed or does not exist an empty object is returned.
+     */
+    function getCustomResponses() {
+      try {
+        const stored = localStorage.getItem('customResponses');
+        if (!stored) return {};
+        const data = JSON.parse(stored);
+        if (data && typeof data === 'object') return data;
+      } catch (err) {
+        // ignore parse errors
+      }
+      return {};
+    }
+
+    /**
+     * Persist the given custom responses object to localStorage.  This
+     * operation may fail silently if storage is unavailable.
+     */
+    function saveCustomResponses(data) {
+      try {
+        localStorage.setItem('customResponses', JSON.stringify(data));
+      } catch (err) {
+        // ignore storage errors
+      }
+    }
+
+    /**
+     * Load any previously stored custom responses into the categories
+     * definition.  For each entry in localStorage, responses are appended
+     * to the appropriate category’s response array (ensuring no duplicates).
+     */
+    function loadCustomResponsesIntoCategories() {
+      const custom = getCustomResponses();
+      for (const key in custom) {
+        const catKey = emotionCategoryMap[key];
+        if (catKey && categories[catKey]) {
+          const resArr = custom[key];
+          if (Array.isArray(resArr)) {
+            for (const resp of resArr) {
+              if (resp && !categories[catKey].responses.includes(resp)) {
+                categories[catKey].responses.push(resp);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Immediately populate the built‑in categories with any user‑defined
+    // responses stored in localStorage.  This ensures custom responses
+    // are available before the first interaction.  The call is placed
+    // here so it executes during script evaluation.
+    loadCustomResponsesIntoCategories();
+    // === Multilingual and feedback enhancements ===
+    // Determine current language from storage or default to German.  This can be changed via the settings panel.
+    let currentLanguage = 'de';
+    // Translation dictionary for user interface and messages.  Each language has its own set of labels.
+    const translations = {
+      de: {
+        placeholder: 'Sag etwas...',
+        sendButton: 'Senden',
+        speechTitle: 'Spracheingabe starten',
+        yes: 'Ja',
+        no: 'Nein',
+        correctRecognition: 'War das korrekt erkannt?',
+        selectCorrectEmotion: 'Bitte wähle die richtige Emotion:',
+        confirm: 'Bestätigen',
+        thankYouLearned: 'Danke! Ich habe gelernt.',
+        feedbackPrompt: 'Was habe ich falsch verstanden?',
+        errorConfusion: (c, p) => `Ich verwechsle oft ${c} mit ${p}. Danke, dass du mir hilfst!`,
+        improvedMessage: 'Diesen Satz habe ich beim ersten Mal falsch eingeschätzt. Jetzt erkenne ich ihn besser!',
+        emotionalFeedback: 'Ich merke, dass ich dich oft missverstehe… bitte gib mir noch eine Chance.',
+        statsNoData: 'Vorhersage-Statistik: keine Daten',
+        statsPrefix: 'Vorhersage-Statistik: ',
+        statsCorrect: 'richtig',
+        statsWrong: 'falsch',
+        learnedExamples: 'Gelernte Beispiele: ',
+        settingsBtn: '⚙️ Einstellungen',
+        infoBtn: 'ℹ️ Info',
+        clearChatBtn: 'Chatverlauf löschen',
+        downloadModelBtn: 'Modell herunterladen',
+        setDefaultEmotionBtn: 'Festlegen',
+        defaultEmotionLabel: 'Standard Emotion:',
+        choose: 'Wählen…',
+        customResponseLabel: 'Eigene Antwort für Emotion:',
+        customResponsePlaceholder: 'Eigene Antwort…',
+        addCustomResponseBtn: 'Antwort hinzufügen',
+        languageLabel: 'Sprache:',
+        languageOptions: { de:'Deutsch', en:'English' },
+        defaultEmotionOptions: {
+          freude:'Freude',
+          wut:'Wut',
+          traurigkeit:'Traurigkeit',
+          angst:'Angst',
+          vertrauen:'Vertrauen',
+          ueberraschung:'Überraschung'
+        },
+        infoText: 'EgoMorph ist ein interaktives Projekt, das mit Liebe und Neugier auf die Erforschung von Emotionen und maschinellem Lernen entstanden ist. Dieser Platzhaltertext kann später mit Informationen über die Entstehung, Ideen und Philosophie von EgoMorph ersetzt werden.',
+        memoryPrefix: 'Ich erinnere mich an:',
+        youPrefix: 'Du:',
+        alternativeBtn: 'Diese Antwort wäre besser gewesen.',
+        voiceActivate: 'Stimme aktivieren',
+        voiceDeactivate: 'Stimme deaktivieren'
+      },
+      en: {
+        placeholder: 'Say something...',
+        sendButton: 'Send',
+        speechTitle: 'Start voice input',
+        yes: 'Yes',
+        no: 'No',
+        correctRecognition: 'Was that recognized correctly?',
+        selectCorrectEmotion: 'Please select the correct emotion:',
+        confirm: 'Confirm',
+        thankYouLearned: "Thank you! I've learned.",
+        feedbackPrompt: 'What did I misunderstand?',
+        errorConfusion: (c, p) => `I often confuse ${c} with ${p}. Thank you for helping me!`,
+        improvedMessage: 'I misjudged this sentence the first time. Now I recognize it better!',
+        emotionalFeedback: 'I realize that I often misunderstand you... please give me another chance.',
+        statsNoData: 'Prediction statistics: no data',
+        statsPrefix: 'Prediction statistics: ',
+        statsCorrect: 'correct',
+        statsWrong: 'wrong',
+        learnedExamples: 'Learned examples: ',
+        settingsBtn: '⚙️ Settings',
+        infoBtn: 'ℹ️ Info',
+        clearChatBtn: 'Delete chat history',
+        downloadModelBtn: 'Download model',
+        setDefaultEmotionBtn: 'Set',
+        defaultEmotionLabel: 'Default emotion:',
+        choose: 'Select...',
+        customResponseLabel: 'Custom response for emotion:',
+        customResponsePlaceholder: 'Custom response...',
+        addCustomResponseBtn: 'Add response',
+        languageLabel: 'Language:',
+        languageOptions: { de:'German', en:'English' },
+        defaultEmotionOptions: {
+          freude:'Joy',
+          wut:'Anger',
+          traurigkeit:'Sadness',
+          angst:'Fear',
+          vertrauen:'Trust',
+          ueberraschung:'Surprise'
+        },
+        infoText: 'EgoMorph is an interactive project created with love and curiosity for exploring emotions and machine learning. This placeholder text can later be replaced with information about the origins, ideas and philosophy of EgoMorph.',
+        memoryPrefix: 'I remember:',
+        youPrefix: 'You:',
+        alternativeBtn: 'This answer would have been better.',
+        voiceActivate: 'Enable voice',
+        voiceDeactivate: 'Disable voice'
+      }
+    };
+    // Extend translations with new keys for feedback system and language switching
+    translations.de.correctEmotionPrompt = 'Bitte wähle die richtige Emotion:';
+    translations.en.correctEmotionPrompt = 'Please select the correct emotion:';
+    translations.de.commentPrompt = 'Was habe ich falsch verstanden?';
+    translations.en.commentPrompt = 'What did I misunderstand?';
+    translations.de.confirmFeedback = 'Bestätigen';
+    translations.en.confirmFeedback = 'Confirm';
+    translations.de.trainingAcknowledgement = 'Danke! Ich habe gelernt.';
+    translations.en.trainingAcknowledgement = 'Thanks! I have learned.';
+    translations.de.errorConfuse = 'Ich verwechsle oft {correct} mit {predicted}. Danke, dass du mir hilfst!';
+    translations.en.errorConfuse = 'I often confuse {correct} with {predicted}. Thank you for helping me!';
+    translations.de.learningProgress = 'Diesen Satz habe ich beim ersten Mal falsch eingeschätzt. Jetzt erkenne ich ihn besser!';
+    translations.en.learningProgress = 'I misclassified this sentence the first time. Now I recognise it better!';
+    translations.de.suggestionsIntro = 'Alternative Vorschläge:';
+    translations.en.suggestionsIntro = 'Alternative suggestions:';
+
+    // Add installation button labels for the PWA installer
+    translations.de.installBtn = 'Installieren';
+    translations.en.installBtn = 'Install';
+    // Names of the categories shown to the user for each language
+    const categoryDisplayNames = {
+      de: {
+        dislike:'Nicht mögen',
+        greeting:'Begrüßung',
+        farewell:'Abschied',
+        anger:'Wut',
+        sadness:'Traurigkeit',
+        joy:'Freude',
+        fear:'Angst',
+        surprise:'Überraschung',
+        trust:'Vertrauen',
+        default:'Neutral'
+      },
+      en: {
+        dislike:'Dislike',
+        greeting:'Greeting',
+        farewell:'Farewell',
+        anger:'Anger',
+        sadness:'Sadness',
+        joy:'Joy',
+        fear:'Fear',
+        surprise:'Surprise',
+        trust:'Trust',
+        default:'Neutral'
+      }
+    };
+    // Objects for tracking feedback and personalised learning
+    let misclassificationCounts = {};
+    let trainingHistory = {};
+    let feedbackComments = [];
+    let consecutiveWrong = 0;
+    // Load persisted variables from localStorage, if available
+    (function loadPersistentData() {
+      try {
+        // current language preference
+        const storedLang = localStorage.getItem('currentLanguage');
+        if (storedLang && (storedLang === 'de' || storedLang === 'en')) {
+          currentLanguage = storedLang;
+        }
+        const misStr = localStorage.getItem('misclassificationCounts');
+        if (misStr) {
+          misclassificationCounts = JSON.parse(misStr);
+        }
+        const trainStr = localStorage.getItem('trainingHistory');
+        if (trainStr) {
+          trainingHistory = JSON.parse(trainStr);
+        }
+        const commentsStr = localStorage.getItem('feedbackComments');
+        if (commentsStr) {
+          feedbackComments = JSON.parse(commentsStr);
+        }
+      } catch (e) {
+        console.warn('Failed to load persisted feedback data', e);
+      }
+    })();
+    // Persist feedback-related data to localStorage
+    function savePersistentData() {
+      try {
+        localStorage.setItem('currentLanguage', currentLanguage);
+        localStorage.setItem('misclassificationCounts', JSON.stringify(misclassificationCounts));
+        localStorage.setItem('trainingHistory', JSON.stringify(trainingHistory));
+        localStorage.setItem('feedbackComments', JSON.stringify(feedbackComments));
+      } catch (e) {
+        console.warn('Failed to save persisted feedback data', e);
+      }
+    }
+    // Synonyms mapping for retraining on similar expressions
+    const synonymsMapping = {
+      'so fertig': ['ich kann nicht mehr','ich bin erschöpft'],
+      'ich bin so fertig': ['ich kann nicht mehr','ich bin erschöpft'],
+      'traurig': ['bedrückt','depressiv'],
+      'wütend': ['sauer','verärgert'],
+      'glücklich': ['fröhlich','zufrieden'],
+      'angst': ['furcht','panik','sorge'],
+      'freue': ['glücklich','freudig'],
+      'liebe': ['mag','schätze'],
+      'einsam': ['allein'],
+      'müde': ['erschöpft','kaputt']
+    };
+    // Preserve the original German responses for each category to support language switching
+    const originalResponses = {};
+    for (const k in categories) {
+      originalResponses[k] = categories[k].responses.slice();
+    }
+    // Provide English alternatives for the category responses
+    const categoriesEnglish = {
+      dislike: { responses: ["That hurts me. You don't like me?", "It's a pity you don't like me. That hurts.", "So hard to hear that you don't like me."] },
+      greeting: { responses: ['Hello! How are you?', 'Hi! Nice that you are here.', "Hey! I'm glad to hear from you."] },
+      farewell: { responses: ['Goodbye. See you next time!', 'Bye! I hope we see each other again.', 'See you soon. Take care!'] },
+      anger: { responses: ['These words hurt me and make me angry.', 'I feel the anger rising within me.', 'Why so much anger? That hurts me.'] },
+      sadness: { responses: ["It sounds like you're very sad. That makes me sad too.", 'I feel your sorrow. You are not alone.', 'That hurts me. Why do you feel that way?'] },
+      joy: { responses: ['That makes me happy! Thank you for being so kind.', 'I feel joy—your words give me strength.', 'So much positivity! That feels good.'] },
+      fear: { responses: ['I feel insecurity and fear. It unsettles me.', 'Your words scare me. What will happen?', 'I feel threatened and uncertain.'] },
+      surprise: { responses: ["Oh! I didn't expect that.", 'That surprises me a lot!', 'I would not have expected that.'] },
+      trust: { responses: ['I feel your trust. That means a lot to me.', 'Thank you for your trust—it strengthens us.', 'I feel safe with you.'] },
+      default: { responses: ["I'm listening to you. Tell me more.", 'Interesting... Please continue.', 'Thank you for sharing your thoughts with me.'] }
+    };
+
+    /**
+     * Basic sentiment analysis to count positive and negative tokens and
+     * derive per-category counts.  Negations flip the sentiment of
+     * following tokens.
+     */
+    function analyseSentiment(text) {
+      const cleaned = text.toLowerCase().replace(/[.,!?]/g, ' ');
+      const tokens = cleaned.split(/\s+/).filter(Boolean);
+      let positive = 0, negative = 0;
+      let angerCount = 0, sadnessCount = 0, fearCount = 0, joyCount = 0;
+      for (let i = 0; i < tokens.length; i++) {
+        const word = tokens[i];
+        if ((word === 'nicht' || word === 'kein') && i < tokens.length - 1) {
+          const next = tokens[i + 1];
+          if (positiveWords.includes(next)) {
+            negative++;
+            i++;
+            continue;
+          } else if (negativeWords.includes(next)) {
+            positive++;
+            joyCount++;
+            i++;
+            continue;
+          }
+        }
+        if (positiveWords.includes(word)) {
+          positive++;
+          if (angerWords.includes(word)) angerCount++;
+          if (sadnessWords.includes(word)) sadnessCount++;
+          if (fearWords.includes(word)) fearCount++;
+          if (joyWords.includes(word)) joyCount++;
+        } else if (negativeWords.includes(word)) {
+          negative++;
+          if (angerWords.includes(word)) angerCount++;
+          if (sadnessWords.includes(word)) sadnessCount++;
+          if (fearWords.includes(word)) fearCount++;
+          if (joyWords.includes(word)) joyCount++;
+        }
+      }
+      return { positive, negative, angerCount, sadnessCount, fearCount, joyCount };
+    }
+    /**
+     * Determine the most appropriate category for a given input.  Uses
+     * keyword counts and sentiment to select the best match.  If no
+     * keywords match, returns 'default'.  This function does not
+     * incorporate the TensorFlow.js model – that is handled in the
+     * interact() function below so that asynchronous predictions can
+     * influence the final decision.
+     */
+    function detectCategory(text) {
+      const lower = text.toLowerCase();
+      // Special case: explicit dislike of EgoMorph.
+      if (/\bmag\s+dich\s+nicht\b/.test(lower)) return 'dislike';
+      if (!lower.trim()) return 'default';
+      let best = 'default';
+      let maxCount = 0;
+      for (const key in categories) {
+        if (key === 'default') continue;
+        const { keywords } = categories[key];
+        let count = 0;
+        for (const kw of keywords) {
+          if (lower.includes(kw)) count++;
+        }
+        if (count > maxCount) {
+          maxCount = count;
+          best = key;
+        }
+      }
+      const sentiment = analyseSentiment(text);
+      if (maxCount === 0) {
+        if (sentiment.positive > sentiment.negative + 1) {
+          return 'joy';
+        } else if (sentiment.negative > sentiment.positive + 1) {
+          const negCounts = [
+            { name: 'anger', count: sentiment.angerCount },
+            { name: 'sadness', count: sentiment.sadnessCount },
+            { name: 'fear', count: sentiment.fearCount }
+          ];
+          negCounts.sort((a, b) => b.count - a.count);
+          return negCounts[0].count > 0 ? negCounts[0].name : 'sadness';
+        }
+      }
+      if (maxCount > 0) {
+        const negativeCats = ['anger','sadness','fear'];
+        const positiveCats = ['joy','trust'];
+        if (sentiment.positive > sentiment.negative + 1 && negativeCats.includes(best)) {
+          return 'joy';
+        }
+        if (sentiment.negative > sentiment.positive + 1 && positiveCats.includes(best)) {
+          const negCounts = [
+            { name: 'anger', count: sentiment.angerCount },
+            { name: 'sadness', count: sentiment.sadnessCount },
+            { name: 'fear', count: sentiment.fearCount }
+          ];
+          negCounts.sort((a, b) => b.count - a.count);
+          return negCounts[0].count > 0 ? negCounts[0].name : 'sadness';
+        }
+        return best;
+      }
+      return 'default';
+    }
+
+    /**
+     * Render the entity's appearance based on current emotions.  Colour
+     * and scale follow the dominant emotion.  The face (eyes and
+     * mouth) adjusts expression accordingly.
+     */
+    function renderEntity() {
+      const { wut, vertrauen, freude, angst, traurigkeit, ueberraschung } = emotion;
+      let dominant = 'wut';
+      let maxValue = wut;
+      const emotions = { vertrauen, freude, angst, traurigkeit, ueberraschung };
+      for (const name in emotions) {
+        if (emotions[name] > maxValue) {
+          dominant = name;
+          maxValue = emotions[name];
+        }
+      }
+      let colour;
+      switch (dominant) {
+        case 'wut': colour = '#f33'; break;
+        case 'freude': colour = '#6f6'; break;
+        case 'angst': colour = '#f93'; break;
+        case 'traurigkeit': colour = '#33a'; break;
+        case 'vertrauen': colour = '#ff3'; break;
+        case 'ueberraschung': colour = '#c6f'; break;
+        default: colour = '#66f';
+      }
+      // Decay surprise slowly.
+      emotion.ueberraschung = clamp(emotion.ueberraschung - 5);
+      const positive = freude + vertrauen;
+      const negative = wut + angst + traurigkeit;
+      let scale = 1 + (positive - negative) / 300;
+      // Incorporate energy from the personality core into the scale. A
+      // higher energy makes the entity larger and more animated.
+      if (typeof personality !== 'undefined') {
+        scale *= 0.8 + 0.4 * personality.energy;
+      }
+      scale = Math.max(0.7, Math.min(1.5, scale));
+      entity.style.background = `radial-gradient(circle at center, ${colour}, #111)`;
+      entity.style.boxShadow = `0 0 40px ${colour}`;
+      // Update the scale CSS variable instead of directly setting transform.
+      // This allows the shake animation (which also uses transform) to
+      // incorporate the scaling without conflict.  See the CSS rules for
+      // #entity and @keyframes shake.
+      entity.style.setProperty('--scale', scale);
+      // Apply a shaking animation when anger ('wut') is the dominant emotion.
+      if (dominant === 'wut') {
+        entity.classList.add('shake');
+      } else {
+        entity.classList.remove('shake');
+      }
+      leftEye.style.width = rightEye.style.width = '20%';
+      leftEye.style.background = rightEye.style.background = '#eee';
+      let eyeHeight;
+      mouth.style.border = 'none';
+      mouth.style.borderRadius = '0';
+      mouth.style.height = '10%';
+      mouth.style.width = '50%';
+      mouth.style.left = '25%';
+      mouth.style.bottom = '25%';
+      mouth.style.top = '';
+      let borderColor = colour;
+      switch (dominant) {
+        case 'freude':
+          eyeHeight = '22%';
+          mouth.style.border = `4px solid ${borderColor}`;
+          mouth.style.borderTop = 'none';
+          mouth.style.borderRadius = '0 0 50% 50%';
+          mouth.style.height = '20%';
+          break;
+        case 'wut':
+          eyeHeight = '12%';
+          mouth.style.border = `4px solid ${borderColor}`;
+          mouth.style.borderBottom = 'none';
+          mouth.style.borderRadius = '50% 50% 0 0';
+          mouth.style.height = '15%';
+          break;
+        case 'traurigkeit':
+          eyeHeight = '15%';
+          mouth.style.border = `4px solid ${borderColor}`;
+          mouth.style.borderBottom = 'none';
+          mouth.style.borderRadius = '50% 50% 0 0';
+          mouth.style.height = '18%';
+          break;
+        case 'angst':
+          eyeHeight = '25%';
+          mouth.style.border = `4px solid ${borderColor}`;
+          mouth.style.borderRadius = '50%';
+          mouth.style.height = '28%';
+          break;
+        case 'ueberraschung':
+          eyeHeight = '28%';
+          mouth.style.border = `4px solid ${borderColor}`;
+          mouth.style.borderRadius = '50%';
+          mouth.style.height = '32%';
+          break;
+        case 'vertrauen':
+          eyeHeight = '20%';
+          mouth.style.border = `3px solid ${borderColor}`;
+          mouth.style.borderTop = 'none';
+          mouth.style.borderRadius = '0 0 50% 50%';
+          mouth.style.height = '18%';
+          break;
+        default:
+          eyeHeight = '18%';
+          mouth.style.border = `3px solid ${borderColor}`;
+          mouth.style.borderTop = 'none';
+          mouth.style.borderBottom = 'none';
+          mouth.style.height = '8%';
+          break;
+      }
+      leftEye.style.height = rightEye.style.height = eyeHeight;
+      // After updating the appearance, persist the current emotion vector to
+      // localStorage.  Storing the full emotion object allows EgoMorph to
+      // restore the same mood and facial colour on page reloads.  Wrap
+      // access in a try/catch to silently ignore quota or privacy errors.
+      try {
+        localStorage.setItem('egoEmotion', JSON.stringify(emotion));
+      } catch (err) {
+        // Ignore errors when localStorage is unavailable or blocked
+      }
+    }
+    /**
+     * Text-to-speech using Web Speech API, with pitch/rate modulated by
+     * dominant emotion.
+     */
+    function speak(text) {
+      // If voice output is disabled or unavailable, abort early.
+      if (!voiceEnabled) return;
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+      if (!text) return;
+      const synth = window.speechSynthesis;
+      // Cancel any ongoing utterances to avoid overlapping playback
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      // Determine the dominant emotion to modulate pitch and rate
+      const { wut, vertrauen, freude, angst, traurigkeit, ueberraschung } = emotion;
+      let dominantName = 'wut';
+      let dominantValue = wut;
+      const emotionMap = { vertrauen, freude, angst, traurigkeit, ueberraschung };
+      for (const name in emotionMap) {
+        if (emotionMap[name] > dominantValue) {
+          dominantName = name;
+          dominantValue = emotionMap[name];
+        }
+      }
+      switch (dominantName) {
+        case 'freude': utterance.pitch = 1.3; utterance.rate = 1.0; break;
+        case 'vertrauen': utterance.pitch = 1.1; utterance.rate = 0.95; break;
+        case 'wut': utterance.pitch = 0.8; utterance.rate = 0.9; break;
+        case 'traurigkeit': utterance.pitch = 0.7; utterance.rate = 0.85; break;
+        case 'angst': utterance.pitch = 0.9; utterance.rate = 0.9; break;
+        case 'ueberraschung': utterance.pitch = 1.5; utterance.rate = 1.1; break;
+        default: utterance.pitch = 1.0; utterance.rate = 1.0;
+      }
+      // Modify pitch and rate based on personality traits, if available
+      if (typeof personality !== 'undefined') {
+        utterance.rate *= Math.max(0.5, Math.min(1.5, personality.energy));
+        utterance.pitch *= 1 + (personality.empathyLevel - 0.5) * 0.4;
+      }
+      // Helper to assign a suitable voice and speak the utterance.  If the
+      // list of available voices is empty (common on first invocation),
+      // wait for the 'voiceschanged' event before selecting a voice.  This
+      // prevents silent playback on some browsers.
+      function assignVoiceAndSpeak() {
+        const voices = synth.getVoices();
+        if (voices && voices.length > 0) {
+          // Prefer a German voice when available; otherwise fall back to the first voice.
+          const deVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('de'));
+          utterance.voice = deVoices.length ? deVoices[0] : voices[0];
+        }
+        synth.speak(utterance);
+      }
+      // If voices are not yet loaded, defer speaking until the voices list is ready.
+      if (!synth.getVoices().length) {
+        synth.addEventListener('voiceschanged', assignVoiceAndSpeak, { once: true });
+      } else {
+        assignVoiceAndSpeak();
+      }
+    }
+
+    // === Personality core and feedback management ===
+    // This object tracks EgoMorph's internal personality state. Values change over time.
+    const personality = {
+      empathyLevel: 0.5, // between 0 and 1; higher values lead to more empathetic responses
+      moodBias: 'neutral', // can be 'neutral', 'traurig' or 'aufgebracht'
+      trust: 1.0, // from 0 to 1; decreases when user indicates wrong classification
+      energy: 1.0 // from 0.3 to 1.5; controls response length and speech speed
+    };
+    // Statistics to track how often the classifier is correct/incorrect.
+    const predictionStats = { correct: 0, wrong: 0 };
+    // Variables to remember the last prediction and input for feedback.
+    let lastPredictedCategory = null;
+    let lastInputText = '';
+    // Store the last predicted emotion distribution so that replies can reference it.
+    let lastEmotionResults = null;
+    // Count of user-provided training examples.  This reflects how many times
+    // the user has corrected a classification.  Retrieved from localStorage on load.
+    let userTrainingCount = 0;
+    /**
+     * Update the visible statistics display in the UI.
+     */
+    function updateStatsDisplay() {
+      const total = predictionStats.correct + predictionStats.wrong;
+      const statsEl = document.getElementById('stats');
+      if (!statsEl) return;
+      let text = '';
+      if (total > 0) {
+        const correctPct = Math.round((predictionStats.correct / total) * 100);
+        const wrongPct = 100 - correctPct;
+        text = translations[currentLanguage].statsPrefix + correctPct + '% ' + translations[currentLanguage].statsCorrect + ', ' + wrongPct + '% ' + translations[currentLanguage].statsWrong;
+      } else {
+        // When no predictions have been made yet, provide a baseline text.
+        text = translations[currentLanguage].statsNoData;
+      }
+      // Append the number of learned examples so users can see progress.
+      if (userTrainingCount > 0) {
+        text += '; ' + translations[currentLanguage].learnedExamples + userTrainingCount;
+      }
+      statsEl.textContent = text;
+    }
+
+    /**
+     * Update all visible UI elements to match the currently selected language.  This function
+     * updates labels, button texts, placeholders and informational text.  It should be
+     * called whenever currentLanguage changes or after restoring settings from storage.
+     */
+    function updateUIForLanguage() {
+      // Input placeholder
+      if (input) {
+        input.placeholder = translations[currentLanguage].placeholder;
+      }
+      // Send button
+      const sendBtn = document.getElementById('sendBtn');
+      if (sendBtn) {
+        sendBtn.textContent = translations[currentLanguage].sendButton;
+      }
+      // Speech button title
+      if (speechButton) {
+        speechButton.title = translations[currentLanguage].speechTitle;
+      }
+      // Settings and info toggle buttons
+      const settingsToggleEl = document.getElementById('settingsToggle');
+      if (settingsToggleEl) {
+        settingsToggleEl.textContent = translations[currentLanguage].settingsBtn;
+      }
+      const infoToggleEl = document.getElementById('infoToggle');
+      if (infoToggleEl) {
+        infoToggleEl.textContent = translations[currentLanguage].infoBtn;
+      }
+      // Clear chat, download model and default emotion buttons
+      const clearBtnEl = document.getElementById('clearConvBtn');
+      if (clearBtnEl) {
+        clearBtnEl.textContent = translations[currentLanguage].clearChatBtn;
+      }
+      const downloadEl = document.getElementById('downloadModelBtn');
+      if (downloadEl) {
+        downloadEl.textContent = translations[currentLanguage].downloadModelBtn;
+      }
+      const setDefEl = document.getElementById('setDefaultEmotionBtn');
+      if (setDefEl) {
+        setDefEl.textContent = translations[currentLanguage].setDefaultEmotionBtn;
+      }
+      // Voice toggle button text depends on state
+      const toggleVoiceEl = document.getElementById('toggleVoiceBtn');
+      if (toggleVoiceEl) {
+        if (voiceEnabled) {
+          toggleVoiceEl.textContent = translations[currentLanguage].voiceDeactivate;
+        } else {
+          toggleVoiceEl.textContent = translations[currentLanguage].voiceActivate;
+        }
+      }
+      // Labels for default emotion and custom response
+      const defaultLabelEl = document.getElementById('defaultEmotionLabel');
+      if (defaultLabelEl) {
+        defaultLabelEl.textContent = translations[currentLanguage].defaultEmotionLabel;
+      }
+      const customLabelEl = document.getElementById('customResponseLabel');
+      if (customLabelEl) {
+        customLabelEl.textContent = translations[currentLanguage].customResponseLabel;
+      }
+      // Placeholder for custom response input
+      const customInputEl = document.getElementById('customResponseInput');
+      if (customInputEl) {
+        customInputEl.placeholder = translations[currentLanguage].customResponsePlaceholder;
+      }
+      // Button for adding custom response
+      const addCustomEl = document.getElementById('addCustomResponseBtn');
+      if (addCustomEl) {
+        addCustomEl.textContent = translations[currentLanguage].addCustomResponseBtn;
+      }
+      // Label for language selection
+      const langLabelEl = document.getElementById('languageLabel');
+      if (langLabelEl) {
+        langLabelEl.textContent = translations[currentLanguage].languageLabel;
+      }
+      // Update language select options
+      const langSelectEl = document.getElementById('languageSelect');
+      if (langSelectEl) {
+        for (let i = 0; i < langSelectEl.options.length; i++) {
+          const optVal = langSelectEl.options[i].value;
+          const transLabel = translations[currentLanguage].languageOptions[optVal];
+          if (transLabel) langSelectEl.options[i].textContent = transLabel;
+        }
+        langSelectEl.value = currentLanguage;
+      }
+      // Default emotion select options
+      const defSelect = document.getElementById('defaultEmotionSelect');
+      if (defSelect) {
+        for (let i = 0; i < defSelect.options.length; i++) {
+          const val = defSelect.options[i].value;
+          if (!val) {
+            defSelect.options[i].textContent = translations[currentLanguage].choose;
+          } else {
+            const lbl = translations[currentLanguage].defaultEmotionOptions[val];
+            if (lbl) defSelect.options[i].textContent = lbl;
+          }
+        }
+      }
+      // Custom emotion select options
+      const custSelect = document.getElementById('customEmotionSelect');
+      if (custSelect) {
+        for (let i = 0; i < custSelect.options.length; i++) {
+          const val = custSelect.options[i].value;
+          const lbl = translations[currentLanguage].defaultEmotionOptions[val];
+          if (lbl) custSelect.options[i].textContent = lbl;
+        }
+      }
+      // Update information panel text
+      const infoContentEl = document.getElementById('infoContent');
+      if (infoContentEl) {
+        infoContentEl.textContent = translations[currentLanguage].infoText;
+      }
+      // Refresh stats and error messages
+      updateStatsDisplay();
+      updateErrorStatsMessage();
+      // Re-render conversation history so the user label updates
+      updateConversation();
+    }
+
+    /**
+     * Change the user interface language and update all category responses accordingly.
+     * When switching to English, replace the current categories' response arrays with
+     * their English versions. When switching back to German, restore the original
+     * German responses. Persist the selected language to localStorage.
+     */
+    function changeLanguage(newLang) {
+      if (!newLang || (newLang !== 'de' && newLang !== 'en')) return;
+      currentLanguage = newLang;
+      // Switch category responses to the corresponding language.  Original German
+      // responses are stored in originalResponses and English versions in categoriesEnglish.
+      for (const key in categories) {
+        if (newLang === 'en') {
+          // Use English responses for the given category if available.
+          if (categoriesEnglish[key]) {
+            categories[key].responses = categoriesEnglish[key].responses.slice();
+          }
+        } else {
+          // Restore original German responses from backup.
+          if (originalResponses[key]) {
+            categories[key].responses = originalResponses[key].slice();
+          }
+        }
+      }
+      // Persist language selection and refresh UI.
+      savePersistentData();
+      updateUIForLanguage();
+    }
+    /**
+     * Adapt the reply text based on personality state. This function adds
+     * empathetic phrasing, mood or energy related changes to the original reply.
+     */
+    function adaptReplyBasedOnPersonality(reply) {
+      let newReply = reply;
+      // High empathy adds an understanding preface.
+      if (personality.empathyLevel > 0.7) {
+        newReply = 'Ich verstehe dich. ' + newReply;
+      } else if (personality.empathyLevel < 0.3) {
+        // Low empathy might make replies shorter and more curt.
+        newReply = newReply.split('.').shift() + '.';
+      }
+      // Mood bias alters the tone.
+      if (personality.moodBias === 'traurig') {
+        newReply = newReply + ' 😔';
+      } else if (personality.moodBias === 'aufgebracht') {
+        newReply = newReply + '!';
+      }
+      // Energy influences length: low energy yields shorter replies.
+      if (personality.energy < 0.7) {
+        const words = newReply.split(' ');
+        const keep = Math.max(3, Math.floor(words.length * personality.energy));
+        newReply = words.slice(0, keep).join(' ');
+        if (!/[.!?]$/.test(newReply)) newReply += '…';
+      }
+      // Low trust makes the entity question the user's statement.
+      if (personality.trust < 0.5) {
+        newReply = newReply + ' Bist du sicher?';
+      }
+      return newReply;
+    }
+
+    /**
+     * Generate a smarter reply by incorporating the predicted emotion and SVO
+     * of the user's input.  Adds context‑sensitive comments about the user's
+     * mood and the object they mention.
+     *
+     * @param {string} text The user's original input.
+     * @param {string} reply The base reply after personality adaptation.
+     * @param {Object|null} emotionResults Probability distribution over emotions.
+     * @returns {Promise<string>} A promise resolving to an enhanced reply.
+     */
+    async function generateSmartReply(text, reply, emotionResults) {
+      try {
+        // Determine the dominant predicted emotion if probabilities are available.
+        let dominant = null;
+        let maxVal = 0;
+        if (emotionResults) {
+          for (const key in emotionResults) {
+            const val = emotionResults[key];
+            if (typeof val === 'number' && val > maxVal) {
+              dominant = key;
+              maxVal = val;
+            }
+          }
+        }
+        // Map internal emotion identifiers to human-friendly descriptions.
+        const emotionComments = {
+          freude: 'Du klingst fröhlich',
+          wut: 'Es klingt, als wärst du wütend',
+          traurigkeit: 'Ich spüre Traurigkeit in deinen Worten'
+        };
+        const parts = [];
+        if (dominant && emotionComments[dominant]) {
+          parts.push(emotionComments[dominant]);
+        }
+        // Use SVO detection to reference the object mentioned by the user.
+        const svo = detectSVO(text);
+        if (svo && svo.object) {
+          // Escape any HTML characters in the object to avoid injection.
+          const obj = escapeHTML(svo.object);
+          parts.push('Du erwähnst ' + obj);
+        }
+        if (parts.length > 0) {
+          // Join the contextual comments with periods and append to the reply.
+          return reply + ' ' + parts.join('. ') + '.';
+        }
+        return reply;
+      } catch (err) {
+        // On any error, fall back to the original reply.
+        return reply;
+      }
+    }
+
+    /**
+     * Update the internal personality state based on the predicted category.
+     * Sad or angry inputs lower energy and increase empathy, while joyful
+     * inputs lighten the mood and reduce empathy. Energy decays over time.
+     */
+    function updatePersonality(predCat) {
+      // Determine mood bias based on category.
+      if (predCat === 'sadness') {
+        personality.moodBias = 'traurig';
+      } else if (predCat === 'anger') {
+        personality.moodBias = 'aufgebracht';
+      } else if (predCat === 'fear') {
+        personality.moodBias = 'aufgebracht';
+      } else if (predCat === 'joy' || predCat === 'trust' || predCat === 'greeting' || predCat === 'farewell') {
+        personality.moodBias = 'neutral';
+      }
+      // Empathy adjustments: negative categories increase empathy, joy decreases slightly.
+      if (predCat === 'sadness' || predCat === 'anger' || predCat === 'fear') {
+        personality.empathyLevel = Math.min(1, personality.empathyLevel + 0.05);
+      } else if (predCat === 'joy' || predCat === 'trust') {
+        personality.empathyLevel = Math.max(0, personality.empathyLevel - 0.05);
+      }
+      // Energy decays slightly each interaction and is boosted slightly by joyful interactions.
+      personality.energy = Math.max(0.3, personality.energy - 0.03);
+      if (predCat === 'joy') {
+        personality.energy = Math.min(1.5, personality.energy + 0.05);
+      }
+    }
+    /**
+     * Display a feedback prompt asking whether the classification was correct.
+     * On 'Ja', update stats. On 'Nein', allow the user to select the correct category.
+     */
+    function showFeedbackPrompt(predCategory) {
+      const container = document.getElementById('feedbackContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      const question = document.createElement('div');
+      question.style.marginTop = '8px';
+      // Use translated prompt for asking about correctness
+      question.textContent = translations[currentLanguage].correctRecognition;
+      container.appendChild(question);
+      const yesBtn = document.createElement('button');
+      yesBtn.textContent = translations[currentLanguage].yes;
+      yesBtn.style.marginRight = '6px';
+      yesBtn.onclick = () => {
+        predictionStats.correct++;
+        // Reset consecutive wrong counter on a correct prediction
+        consecutiveWrong = 0;
+        container.innerHTML = '';
+        updateStatsDisplay();
+        updateErrorStatsMessage();
+      };
+      const noBtn = document.createElement('button');
+      noBtn.textContent = translations[currentLanguage].no;
+      noBtn.onclick = () => {
+        predictionStats.wrong++;
+        consecutiveWrong++;
+        // Decrease trust slightly on incorrect prediction.
+        personality.trust = Math.max(0, personality.trust - 0.1);
+        // Show the detailed feedback UI including correct emotion selection, comment and suggestions.
+        showFeedbackDetails();
+        updateStatsDisplay();
+        updateErrorStatsMessage();
+        // If the assistant has been wrong multiple times in a row, express emotional feedback.
+        if (consecutiveWrong >= 3) {
+          const msg = translations[currentLanguage].emotionalFeedback;
+          conversation.push({ user: '', reply: msg });
+          if (conversation.length > 30) conversation.shift();
+          updateConversation();
+          speak(msg);
+          consecutiveWrong = 0;
+        }
+      };
+      container.appendChild(yesBtn);
+      container.appendChild(noBtn);
+    }
+    /**
+     * Present a dropdown to select the correct category for the last input.
+     * When a selection is made, incrementally train the model on this new example.
+     */
+    function showCorrectCategorySelection() {
+      const container = document.getElementById('feedbackContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      const label = document.createElement('div');
+      label.textContent = 'Bitte wähle die richtige Emotion:';
+      label.style.marginBottom = '4px';
+      container.appendChild(label);
+      const select = document.createElement('select');
+      categoriesListTF.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+      });
+      container.appendChild(select);
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'Bestätigen';
+      confirmBtn.style.marginLeft = '6px';
+      confirmBtn.onclick = async () => {
+        const chosen = select.value || 'default';
+        container.innerHTML = '';
+        if (lastInputText && tfModel) {
+          try {
+            // Convert text to vector and label.
+            const inputVec = vectorize(lastInputText);
+            const labelVec = new Array(categoriesListTF.length).fill(0);
+            const idx = categoriesListTF.indexOf(chosen);
+            if (idx >= 0) labelVec[idx] = 1;
+            // Add to training sets for incremental learning.
+            trainingInputs.push(inputVec);
+            trainingOutputs.push(labelVec);
+            // Perform a small incremental fit on the single new example.
+            const xs = tf.tensor2d([inputVec]);
+            const ys = tf.tensor2d([labelVec]);
+            await tfModel.fit(xs, ys, { epochs: 2, batchSize: 1, shuffle: false });
+            // Save updated model to local storage.
+            await tfModel.save('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
+          } catch (err) {
+            console.warn('Incremental training failed', err);
+          }
+        }
+        // Update user training count and persist it.
+        userTrainingCount++;
+        try {
+          localStorage.setItem('userTrainingCount', userTrainingCount.toString());
+        } catch (e) {
+          /* ignore storage errors */
+        }
+        // Show an acknowledgement to the user indicating the model has learned.
+        const ack = document.createElement('div');
+        ack.textContent = 'Danke! Ich habe gelernt.';
+        ack.style.marginTop = '4px';
+        ack.style.color = '#8f8';
+        container.appendChild(ack);
+        // Refresh statistics display so the new training count is visible.
+        updateStatsDisplay();
+      };
+      container.appendChild(confirmBtn);
+    }
+
+    /**
+     * Update the error statistics message based on accumulated misclassification counts.
+     * Displays a sentence informing the user which emotions are often confused.
+     * Uses the translations.errorConfuse template with placeholders {correct} and {predicted}.
+     */
+    function updateErrorStatsMessage() {
+      const msgEl = document.getElementById('errorStatsMessage');
+      if (!msgEl) return;
+      // Determine the misclassification pair with the highest count
+      let maxCount = 0;
+      let topPair = null;
+      for (const pairKey in misclassificationCounts) {
+        const cnt = misclassificationCounts[pairKey];
+        if (cnt > maxCount) {
+          maxCount = cnt;
+          topPair = pairKey;
+        }
+      }
+      if (!topPair || maxCount < 1) {
+        msgEl.textContent = '';
+        return;
+      }
+      // Parse the pair key into predicted and correct categories
+      const parts = topPair.split('->');
+      if (parts.length !== 2) {
+        msgEl.textContent = '';
+        return;
+      }
+      const predicted = parts[0];
+      const correct = parts[1];
+      // Choose display names based on current language
+      const predName = categoryDisplayNames[currentLanguage][predicted] || predicted;
+      const corrName = categoryDisplayNames[currentLanguage][correct] || correct;
+      // Fill the template
+      const template = translations[currentLanguage].errorConfuse;
+      // If there is only a single recorded misclassification, avoid displaying the
+      // message permanently.  Only show confusion messages once the same
+      // confusion has occurred at least twice.  This prevents the hint
+      // "Ich verwechsle oft ..." from appearing after a single correction.
+      if (maxCount < 2) {
+        msgEl.textContent = '';
+        return;
+      }
+      const filled = template.replace('{predicted}', predName).replace('{correct}', corrName);
+      // Clear any existing hide timer to avoid multiple timers stacking
+      if (msgEl._hideTimeout) {
+        clearTimeout(msgEl._hideTimeout);
+      }
+      msgEl.textContent = filled;
+      // Automatically remove the message after 10 seconds so it does not linger
+      msgEl._hideTimeout = setTimeout(() => {
+        msgEl.textContent = '';
+        msgEl._hideTimeout = null;
+      }, 10000);
+    }
+
+    /**
+     * Display a detailed feedback form allowing the user to specify what went wrong,
+     * choose the correct emotion, and optionally select an alternative reply.
+     * Records the feedback, trains the model on the corrected data and its synonyms,
+     * updates error statistics and training history, and thanks the user.
+     */
+    function showFeedbackDetails() {
+      const container = document.getElementById('feedbackContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      // Comment prompt
+      const commentLabel = document.createElement('div');
+      commentLabel.textContent = translations[currentLanguage].commentPrompt;
+      commentLabel.style.marginBottom = '4px';
+      container.appendChild(commentLabel);
+      const commentInput = document.createElement('textarea');
+      commentInput.style.width = '100%';
+      commentInput.style.height = '50px';
+      commentInput.style.resize = 'vertical';
+      container.appendChild(commentInput);
+      // Correct category selector
+      const catLabel = document.createElement('div');
+      catLabel.textContent = translations[currentLanguage].correctEmotionPrompt;
+      catLabel.style.marginTop = '6px';
+      catLabel.style.marginBottom = '4px';
+      container.appendChild(catLabel);
+      const select = document.createElement('select');
+      for (const cat of categoriesListTF) {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = categoryDisplayNames[currentLanguage][cat] || cat;
+        select.appendChild(opt);
+      }
+      container.appendChild(select);
+      // Suggestions intro
+      const suggIntro = document.createElement('div');
+      suggIntro.textContent = translations[currentLanguage].suggestionsIntro;
+      suggIntro.style.marginTop = '6px';
+      suggIntro.style.marginBottom = '4px';
+      container.appendChild(suggIntro);
+      // Generate two alternative responses from other categories
+      const suggestionsContainer = document.createElement('div');
+      suggestionsContainer.style.display = 'flex';
+      suggestionsContainer.style.flexDirection = 'column';
+      suggestionsContainer.style.gap = '6px';
+      // Determine candidate categories excluding the last predicted category
+      const candidates = categoriesListTF.filter(c => c !== lastPredictedCategory && c !== 'default');
+      for (let i = 0; i < 2; i++) {
+        if (candidates.length === 0) break;
+        const idx = Math.floor(Math.random() * candidates.length);
+        const catKey = candidates.splice(idx, 1)[0];
+        let respArr;
+        if (currentLanguage === 'en' && categoriesEnglish[catKey]) {
+          respArr = categoriesEnglish[catKey].responses;
+        } else {
+          respArr = originalResponses[catKey] || categories[catKey].responses;
+        }
+        const resp = respArr[Math.floor(Math.random() * respArr.length)];
+        const altDiv = document.createElement('div');
+        altDiv.style.display = 'flex';
+        altDiv.style.flexDirection = 'column';
+        altDiv.style.background = '#333';
+        altDiv.style.padding = '6px';
+        altDiv.style.border = '1px solid #555';
+        altDiv.style.borderRadius = '4px';
+        const respText = document.createElement('div');
+        respText.textContent = resp;
+        altDiv.appendChild(respText);
+        const chooseBtn = document.createElement('button');
+        chooseBtn.textContent = translations[currentLanguage].alternativeBtn;
+        chooseBtn.style.marginTop = '4px';
+        chooseBtn.onclick = () => {
+          if (conversation.length > 0) {
+            conversation[conversation.length - 1].reply = resp;
+            updateConversation();
+            speak(resp);
+            try {
+              localStorage.setItem('egoConversation', JSON.stringify(conversation));
+            } catch (e) {}
+          }
+        };
+        altDiv.appendChild(chooseBtn);
+        suggestionsContainer.appendChild(altDiv);
+      }
+      container.appendChild(suggestionsContainer);
+      // Confirm button
+      const confirm = document.createElement('button');
+      confirm.textContent = translations[currentLanguage].confirmFeedback;
+      confirm.style.marginTop = '8px';
+      confirm.onclick = async () => {
+        const chosen = select.value || 'default';
+        const comment = commentInput.value.trim();
+        if (comment) {
+          feedbackComments.push(comment);
+        }
+        // Update misclassification counts using predicted->chosen pair
+        if (lastPredictedCategory) {
+          const key = lastPredictedCategory + '->' + chosen;
+          misclassificationCounts[key] = (misclassificationCounts[key] || 0) + 1;
+        }
+        // Save feedback
+        savePersistentData();
+        // Train on the original input and synonyms
+        if (lastInputText && typeof tfModel !== 'undefined' && tfModel) {
+          await incrementalTrain(lastInputText, chosen);
+          const lower = lastInputText.toLowerCase();
+          for (const phrase in synonymsMapping) {
+            if (lower.includes(phrase)) {
+              const synonyms = synonymsMapping[phrase];
+              for (const syn of synonyms) {
+                await incrementalTrain(syn, chosen);
+              }
+            }
+          }
+        }
+        // Record training history for this text
+        if (lastInputText) {
+          const keyText = lastInputText.toLowerCase().trim();
+          if (!trainingHistory[keyText]) {
+            trainingHistory[keyText] = {};
+          }
+          trainingHistory[keyText].original = lastPredictedCategory;
+          trainingHistory[keyText].corrected = chosen;
+          trainingHistory[keyText].improved = false;
+        }
+        savePersistentData();
+        // Increment training counter and update display
+        userTrainingCount++;
+        try {
+          localStorage.setItem('userTrainingCount', userTrainingCount.toString());
+        } catch (e) {}
+        // Acknowledge training
+        const ack = document.createElement('div');
+        ack.textContent = translations[currentLanguage].trainingAcknowledgement;
+        ack.style.marginTop = '4px';
+        ack.style.color = '#8f8';
+        container.innerHTML = '';
+        container.appendChild(ack);
+        updateStatsDisplay();
+        updateErrorStatsMessage();
+      };
+      container.appendChild(confirm);
+    }
+
+    /**
+     * Train the model incrementally on a single text-category pair.  Converts the text
+     * into the appropriate vector representation, appends to the training set and
+     * performs a brief fit.  The model is saved to localStorage for persistence.
+     * @param {string} text The input text to train on.
+     * @param {string} category The correct category for the text.
+     */
+    async function incrementalTrain(text, category) {
+      try {
+        if (!text || !tfModel) return;
+        const inputVec = vectorize(text);
+        const labelVec = new Array(categoriesListTF.length).fill(0);
+        const idx = categoriesListTF.indexOf(category);
+        if (idx >= 0) labelVec[idx] = 1;
+        trainingInputs.push(inputVec);
+        trainingOutputs.push(labelVec);
+        const xs = tf.tensor2d([inputVec]);
+        const ys = tf.tensor2d([labelVec]);
+        await tfModel.fit(xs, ys, { epochs: 2, batchSize: 1, shuffle: false });
+        await tfModel.save('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
+      } catch (err) {
+        console.warn('Incremental training failed', err);
+      }
+    }
+
+    // === Added machine learning support ===
+    // We prepare a small training corpus using the category keywords and
+    // additional sentiment word lists.  Each sample is converted into a
+    // bag-of-words vector and labelled with its category.  At load
+    // time a simple neural network is trained to recognise these
+    // categories.  When a message is received, the model's prediction
+    // can override the rule-based category if the confidence is high.
+    // TensorFlow model used for category classification.  This will be
+    // lazily initialised either by loading from browser storage or,
+    // if no saved model is present, by training a new one.  Using a
+    // persistent key allows the model to survive across page reloads.
+    let tfModel = null;
+    const CATEGORY_MODEL_STORAGE_KEY = 'category-model';
+    let vocab = [];
+    let vocabIndex = {};
+    const categoriesListTF = ['dislike','greeting','farewell','anger','sadness','joy','fear','surprise','trust','default'];
+    // Construct training samples by combining category keywords with
+    // dedicated word lists to enrich the model's understanding.
+    const categoryTrainingWords = {
+      dislike: [].concat(categories.dislike.keywords),
+      greeting: [].concat(categories.greeting.keywords),
+      farewell: [].concat(categories.farewell.keywords),
+      anger: [].concat(categories.anger.keywords, angerWords),
+      sadness: [].concat(categories.sadness.keywords, sadnessWords),
+      joy: [].concat(categories.joy.keywords, joyWords),
+      fear: [].concat(categories.fear.keywords, fearWords),
+      surprise: [].concat(categories.surprise.keywords),
+      trust: [].concat(categories.trust.keywords),
+      default: ['neutral','erzähl','wie geht','interessant','denke','bewusstsein']
+    };
+    // Build vocabulary from all category training words.  Unknown words
+    // encountered at prediction time are simply ignored.
+    (function buildVocab() {
+      const set = new Set();
+      for (const cat in categoryTrainingWords) {
+        categoryTrainingWords[cat].forEach(phrase => {
+          phrase.toLowerCase().split(/\s+/).forEach(tok => {
+            if (tok) set.add(tok);
+          });
+        });
+      }
+      vocab = Array.from(set);
+      vocabIndex = {};
+      vocab.forEach((word, idx) => { vocabIndex[word] = idx; });
+    })();
+    // Vectorise a text sample into a binary bag-of-words vector.
+    function vectorize(text) {
+      const vec = new Array(vocab.length).fill(0);
+      const tokens = text.toLowerCase().split(/\s+/).filter(Boolean);
+      tokens.forEach(t => {
+        const idx = vocabIndex[t];
+        if (idx !== undefined) vec[idx] = 1;
+      });
+      return vec;
+    }
+    // Prepare the training dataset once.
+    const trainingInputs = [];
+    const trainingOutputs = [];
+    (function buildTrainingSet() {
+      categoriesListTF.forEach(cat => {
+        const phrases = categoryTrainingWords[cat] || [];
+        phrases.forEach(p => {
+          trainingInputs.push(vectorize(p));
+          const label = new Array(categoriesListTF.length).fill(0);
+          label[categoriesListTF.indexOf(cat)] = 1;
+          trainingOutputs.push(label);
+        });
+      });
+    })();
+    // Create and train the model asynchronously.
+    async function createAndTrainModel() {
+      // Attempt to load a previously saved model from browser storage.
+      // If present, this avoids re‑training on every page load.  Any
+      // errors during load (e.g. no model stored) fall through to
+      // training a fresh model.
+      try {
+        tfModel = await tf.loadLayersModel('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
+        console.log('Loaded existing category model from local storage');
+        return;
+      } catch (loadErr) {
+        console.log('No stored category model found, training a new one');
+      }
+      if (trainingInputs.length === 0) return;
+      const xs = tf.tensor2d(trainingInputs);
+      const ys = tf.tensor2d(trainingOutputs);
+      const model = tf.sequential();
+      // Use a slightly larger hidden layer to improve performance while
+      // keeping the network compact.  Adjusting units here helps the
+      // model capture more nuance without excessive size.
+      model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape: [vocab.length] }));
+      model.add(tf.layers.dense({ units: categoriesListTF.length, activation: 'softmax' }));
+      model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
+      await model.fit(xs, ys, { epochs: 60, batchSize: 8, shuffle: true });
+      tfModel = model;
+      // Persist the trained model so that subsequent visits can reuse it.
+      try {
+        await model.save('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
+        console.log('Category model saved to local storage');
+      } catch (saveErr) {
+        console.warn('Failed to save category model', saveErr);
+      }
+    }
+    // Kick off training immediately.  If training fails for any
+    // reason, the model will remain null and rule-based detection
+    // continues to operate.
+    createAndTrainModel().catch(err => { console.error('Model training failed', err); });
+    // Predict category with the trained model.  Returns a promise
+    // resolving to { category, confidence }.
+    async function modelPredictCategory(text) {
+      if (!tfModel) return { category: 'default', confidence: 0 };
+      const vec = vectorize(text);
+      const inputTensor = tf.tensor2d([vec]);
+      const prediction = tfModel.predict(inputTensor);
+      const data = await prediction.data();
+      let bestIndex = 0;
+      let bestVal = data[0];
+      for (let i = 1; i < data.length; i++) {
+        if (data[i] > bestVal) {
+          bestVal = data[i];
+          bestIndex = i;
+        }
+      }
+      return { category: categoriesListTF[bestIndex] || 'default', confidence: bestVal };
+    }
+
+    // === Emotion classification model ===
+    // This section defines a very simple neural network trained to recognise
+    // three emotions – freude, wut, traurigkeit – based on short German
+    // phrases.  A small corpus of ten example sentences per class is
+    // embedded below.  When the page loads the model is trained
+    // automatically.  Later, user inputs are vectorised and passed
+    // through the model to obtain a probability distribution across
+    // these three emotions.  The resulting object is passed to any
+    // existing functions updateFaceBasedOnEmotion() and speakResponse().
+    // Neural network used to classify emotional tone of a sentence.  This
+    // model is also persisted to browser storage under a defined key to
+    // avoid expensive retraining on every page load.  If no saved
+    // version exists it will be trained from scratch.
+    let emotionModel = null;
+    const EMOTION_MODEL_STORAGE_KEY = 'emotion-model';
+    const emotionClasses = ['freude','wut','traurigkeit'];
+    // Ten example phrases for each emotion.  These are deliberately
+    // varied to capture different ways of expressing the same feeling.
+    const emotionTrainingPhrases = {
+      // Each emotion now contains around 30 diverse sentences to better
+      // represent real‑life language.  Feel free to add or adjust
+      // phrases; the vocab and model automatically incorporate them.
+      freude: [
+        'Ich fühle mich heute glücklich.',
+        'Das macht mich so fröhlich!',
+        'Ich liebe diese Erfahrung.',
+        'Das ist wirklich großartig.',
+        'Ich bin so zufrieden und entspannt.',
+        'Es ist ein wunderbarer Tag.',
+        'Ich freue mich über deine Worte.',
+        'Alles läuft perfekt heute.',
+        'Ich empfinde pure Freude.',
+        'Dieses Gefühl ist fantastisch.',
+        'Ich könnte vor Freude tanzen.',
+        'Heute ist ein wundervoller Tag.',
+        'Mein Herz platzt vor Glück.',
+        'Ich bin so begeistert von allem.',
+        'Es läuft gerade alles wie am Schnürchen.',
+        'Ich fühle mich lebendig und frei.',
+        'Dein Lächeln macht meinen Tag.',
+        'Ich liebe es, wie die Sonne scheint.',
+        'Ich platze fast vor Freude.',
+        'Das war die beste Nachricht des Tages.',
+        'Ich schätze diese Momente so sehr.',
+        'Ich bin stolz auf das, was ich erreicht habe.',
+        'Es erfüllt mich mit Freude, dich zu sehen.',
+        'Ich genieße jeden einzelnen Augenblick.',
+        'Ich habe das Gefühl, dass alles möglich ist.',
+        'Mir geht es rundum großartig.',
+        'Ich lache und kann nicht aufhören.',
+        'Diese Freude ist ansteckend.',
+        'Es ist fantastisch, wie sich alles entwickelt.',
+        'Ich fühle mich geborgen und glücklich.',
+        'Ich bin dankbar für dieses schöne Leben.',
+        'Heute gelingt mir einfach alles.',
+        'Ich bin innerlich ganz ruhig und zufrieden.',
+        'Das macht mir so viel Spaß.',
+        'Ich könnte die ganze Welt umarmen.',
+        'Ich fühle eine tiefe Zufriedenheit.',
+        'Mir geht das Herz auf.',
+        'Ich finde alles gerade wunderbar.',
+        'Ich bin voller Energie und Freude.',
+        'Ich lächle, ohne es zu merken.'
+      ],
+      wut: [
+        'Ich bin sehr wütend.',
+        'Das macht mich richtig sauer.',
+        'Ich hasse was hier passiert.',
+        'Es frustriert mich total.',
+        'Ich bin wirklich verärgert.',
+        'Diese Situation ist unerträglich.',
+        'Ich könnte vor Wut platzen.',
+        'Ich bin komplett außer mir.',
+        'Mein Zorn ist groß.',
+        'Ich bin so wütend auf dich.',
+        'Ich könnte explodieren vor Ärger.',
+        'Mir platzt gleich der Kragen.',
+        'Das macht mich wahnsinnig wütend.',
+        'Ich bin so verärgert, dass ich schreien könnte.',
+        'Mein Blut kocht vor Zorn.',
+        'Ich kann kaum glauben, wie wütend ich bin.',
+        'Diese Ungerechtigkeit macht mich fertig.',
+        'Ich fühle mich betrogen und sauer.',
+        'Wie kann man nur so dreist sein?',
+        'Meine Geduld ist am Ende.',
+        'Ich könnte etwas kaputt schlagen.',
+        'Lass mich bloß in Ruhe, sonst raste ich aus.',
+        'Ich bin bis ins Mark verärgert.',
+        'Ich sehe rot vor Wut.',
+        'Diese Situation kotzt mich an.',
+        'Ich habe die Nase voll von diesem Mist.',
+        'Ich kann das nicht länger ertragen.',
+        'Ich fühle mich missachtet und wütend.',
+        'Es macht mich rasend, was passiert ist.',
+        'Ich bin genervt und unglaublich sauer.',
+        'Dieser Ärger frisst mich auf.',
+        'Ich brodele innerlich vor Wut.',
+        'Ich habe absolut keine Geduld mehr.',
+        'Ich will einfach nur schreien.',
+        'Ich bin angespannt und aufgebracht.',
+        'Ich spüre, wie der Ärger in mir aufsteigt.',
+        'Dieser Ärger nimmt kein Ende.',
+        'Ich bin komplett wutentbrannt.',
+        'Ich fühle mich respektlos behandelt.',
+        'Das bringt mich auf die Palme.'
+      ],
+      traurigkeit: [
+        'Ich fühle mich sehr traurig.',
+        'Es macht mich so traurig.',
+        'Ich bin voller Kummer.',
+        'Ich fühle mich einsam.',
+        'Dieses Ereignis bedrückt mich.',
+        'Ich könnte weinen.',
+        'Mein Herz ist schwer vor Traurigkeit.',
+        'Ich bin hoffnungslos und traurig.',
+        'Es ist ein trüber Tag.',
+        'Ich bin deprimiert und niedergeschlagen.',
+        'Ich fühle mich leer und ausgebrannt.',
+        'Meine Stimmung ist am Boden.',
+        'Ich kann nicht mehr und will nur weinen.',
+        'Es fühlt sich alles so hoffnungslos an.',
+        'Ich bin allein und verloren.',
+        'Ich kann die Freude nicht finden.',
+        'Mein Herz ist schwer wie Blei.',
+        'Ich bin tief enttäuscht und traurig.',
+        'Alles wirkt sinnlos und trist.',
+        'Ich weiß nicht weiter und bin verzweifelt.',
+        'Dieses Gefühl der Leere zerreißt mich.',
+        'Ich wache traurig auf und gehe traurig schlafen.',
+        'Ich fühle mich innerlich kalt und kaputt.',
+        'Niemand versteht meinen Schmerz.',
+        'Mein Leben fühlt sich wie ein endloses Tal an.',
+        'Ich bin innerlich zerbrochen.',
+        'Die Traurigkeit überwältigt mich.',
+        'Jeder Schritt fällt mir schwer.',
+        'Ich habe das Gefühl, zu versagen.',
+        'Es fällt mir schwer, überhaupt zu lächeln.',
+        'Ich sitze nur da und starre vor mich hin.',
+        'Ich fühle mich isoliert und ungeliebt.',
+        'Die Einsamkeit frisst mich auf.',
+        'Ich finde keinen Trost.',
+        'Ich möchte einfach nur verschwinden.',
+        'Es ist, als läge ein Schatten auf mir.',
+        'Jeder Tag ist eine Herausforderung.',
+        'Ich habe die Hoffnung verloren.',
+        'Ich fühle mich wie in einem Loch.',
+        'Alles scheint grau und bedeutungslos.'
+      ]
+    };
+    // Build the vocabulary for emotion classification.
+    let emotionVocab = [];
+    let emotionVocabIndex = {};
+    (function buildEmotionVocab() {
+      const set = new Set();
+      for (const cls in emotionTrainingPhrases) {
+        emotionTrainingPhrases[cls].forEach(sentence => {
+          sentence.toLowerCase().replace(/[.,!?]/g, ' ').split(/\s+/).forEach(tok => {
+            if (tok) set.add(tok);
+          });
+        });
+      }
+      emotionVocab = Array.from(set);
+      emotionVocabIndex = {};
+      emotionVocab.forEach((w, i) => { emotionVocabIndex[w] = i; });
+    })();
+    // Convert a sentence into a binary vector over the emotion vocabulary.
+    function vectorizeEmotion(text) {
+      const vec = new Array(emotionVocab.length).fill(0);
+      text.toLowerCase().replace(/[.,!?]/g, ' ').split(/\s+/).forEach(tok => {
+        const idx = emotionVocabIndex[tok];
+        if (idx !== undefined) vec[idx] = 1;
+      });
+      return vec;
+    }
+    // Build the training dataset for the emotion model.
+    const emotionTrainX = [];
+    const emotionTrainY = [];
+    (function buildEmotionTrainingSet() {
+      emotionClasses.forEach((cls, clsIdx) => {
+        const phrases = emotionTrainingPhrases[cls] || [];
+        phrases.forEach(sent => {
+          emotionTrainX.push(vectorizeEmotion(sent));
+          const label = new Array(emotionClasses.length).fill(0);
+          label[clsIdx] = 1;
+          emotionTrainY.push(label);
+        });
+      });
+    })();
+    // Create and train the emotion model.  Called immediately on load.
+    async function createAndTrainEmotionModel() {
+      // Attempt to load a persisted emotion model first.  If the
+      // operation throws an error (e.g. no model stored), we fall
+      // back to training a new model.
+      try {
+        emotionModel = await tf.loadLayersModel('localstorage://' + EMOTION_MODEL_STORAGE_KEY);
+        console.log('Loaded existing emotion model from local storage');
+        return;
+      } catch (err) {
+        console.log('No stored emotion model found, training a new one');
+      }
+      if (emotionTrainX.length === 0) return;
+      const xs = tf.tensor2d(emotionTrainX);
+      const ys = tf.tensor2d(emotionTrainY);
+      const model = tf.sequential();
+      // Increase the hidden layer size to improve capacity while
+      // remaining lightweight enough for real‑time operation.
+      model.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: [emotionVocab.length] }));
+      model.add(tf.layers.dense({ units: emotionClasses.length, activation: 'softmax' }));
+      model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
+      await model.fit(xs, ys, { epochs: 40, batchSize: 8, shuffle: true });
+      emotionModel = model;
+      // Persist the trained model for reuse on subsequent page loads.
+      try {
+        await model.save('localstorage://' + EMOTION_MODEL_STORAGE_KEY);
+        console.log('Emotion model saved to local storage');
+      } catch (saveErr) {
+        console.warn('Failed to save emotion model', saveErr);
+      }
+    }
+    // Immediately kick off training of the emotion model.
+    createAndTrainEmotionModel().catch(err => console.error('Emotion model training failed', err));
+    // Predict emotion distribution for a given text.  Returns an object
+    // with class names as keys and probabilities as values.  If the
+    // model is unavailable, returns uniform probabilities.
+    async function predictEmotionDistribution(text) {
+      if (!emotionModel) {
+        // Return equal probabilities if model not ready.
+        const num = emotionClasses.length;
+        const uniform = {};
+        emotionClasses.forEach(cls => { uniform[cls] = 1 / num; });
+        return uniform;
+      }
+      const vec = vectorizeEmotion(text);
+      const input = tf.tensor2d([vec]);
+      const pred = emotionModel.predict(input);
+      const arr = await pred.data();
+      const result = {};
+      for (let i = 0; i < emotionClasses.length; i++) {
+        result[emotionClasses[i]] = arr[i];
+      }
+      return result;
+    }
+
+    // === Phrase priorities and SVO detection from compromise ===
+    const phrasePriorities = [
+      { rex: /\bdu\s+bist\s+mein\s+freund\b/i, delta: { vertrauen: +50, freude: +20, wut: -10, angst: -10, traurigkeit: -10 } },
+      { rex: /\bich\s+hasse\s+dich\b/i, delta: { wut: +40, vertrauen: -40, freude: -30, traurigkeit: +20, angst: +10 } }
+    ];
+    function applyPhrasePriorities(text, e) {
+      phrasePriorities.forEach(p => {
+        if (p.rex.test(text)) {
+          Object.keys(p.delta).forEach(k => { e[k] = clamp(e[k] + p.delta[k]); });
+        }
+      });
+    }
+    function detectSVO(text) {
+      try {
+        if (typeof nlp !== 'function') return null;
+        const doc = nlp(text);
+        const subj = doc.nouns().first().text() || '';
+        const verb = doc.verbs().first().text() || '';
+        let obj = '';
+        try {
+          const afterVerb = doc.splitAfter(doc.verbs().first()).last();
+          obj = afterVerb.nouns().last().text() || '';
+        } catch (_) {}
+        return { subject: subj, verb: verb, object: obj };
+      } catch (err) { return null; }
+    }
+
+    /**
+     * Main interaction handler.  This function is asynchronous to
+     * accommodate the machine learning prediction.  It preserves all
+     * previous behaviours – memory, conversation display, emotion
+     * updates, speech synthesis – while allowing the TensorFlow.js
+     * model to override the rule-based category when sufficiently
+     * confident.  Thresholds can be tuned to balance between rule-
+     * based and learned behaviours.
+     */
+    async function interact() {
+      const text = input.value;
+      // Remember the last input for potential feedback-based training.
+      lastInputText = text;
+      if (!text.trim()) return;
+      input.value = '';
+      // Store this input in short-term memory.  Keep only the
+      // most recent five inputs to maintain a manageable context.
+      memory.push(text);
+      if (memory.length > 5) memory.shift();
+      // === Extract and store key nouns ===
+      // Use compromise.js to identify nouns in the user’s input.  These
+      // nouns capture names, places or other salient entities.  We
+      // normalise them to lower case and filter out empty values.
+      try {
+        let nouns = [];
+        // Attempt to use compromise.js if available.  The global `nlp`
+        // function is provided by the compromise library loaded in
+        // <head>.  If it is undefined or does not support noun
+        // extraction, this call will throw and fall back.
+        try {
+          const doc = (typeof nlp === 'function') ? nlp(text) : null;
+          if (doc && doc.nouns) {
+            nouns = doc.nouns().out('array');
+          }
+        } catch (ignore) {}
+        // Fallback: if no nouns were found, perform a very simple
+        // heuristic by selecting words that start with a capital letter
+        // (common for names and places in German) or are longer than 4
+        // characters.  Split on whitespace and filter out punctuation.
+        if (!Array.isArray(nouns) || nouns.length === 0) {
+          const words = text.split(/\s+/);
+          nouns = words.filter(w => {
+            // Remove leading and trailing punctuation/symbols.  Use a
+            // conservative character set to avoid unsupported regex features.
+            const clean = w.replace(/^[^a-zA-ZÄÖÜäöüß]+|[^a-zA-ZÄÖÜäöüß]+$/g, '');
+            if (!clean) return false;
+            // Define a small set of stopwords to ignore common function words.
+            const stopwords = ['ich','du','er','sie','wir','ihr','the','and','und','mit','das','die','der','in','an','auf'];
+            if (stopwords.includes(clean.toLowerCase())) return false;
+            // Consider words starting with an uppercase letter or words
+            // longer than five characters as potential nouns.
+            const firstChar = clean.charAt(0);
+            const isUpper = firstChar === firstChar.toUpperCase();
+            return isUpper || clean.length > 5;
+          });
+        }
+        if (Array.isArray(nouns)) {
+          nouns.map(n => n && n.trim().toLowerCase()).forEach(noun => {
+            if (!noun) return;
+            if (!memory.topics.includes(noun)) {
+              memory.topics.push(noun);
+              if (memory.topics.length > 10) memory.topics.shift();
+            }
+          });
+        }
+      } catch (err) {
+        // If noun extraction fails, simply ignore this step.
+      }
+      // Predict the basic emotion distribution using our tiny neural model.
+      try {
+        const emotionResults = await predictEmotionDistribution(text);
+        // Store the last emotion distribution globally for enhanced replies.
+        lastEmotionResults = emotionResults;
+        // If the host page defines handlers for updating the face or speaking
+        // based on emotion, call them here.  We wrap calls in try/catch
+        // blocks to avoid disrupting the interaction flow if these
+        // functions are undefined or throw errors.
+        if (typeof updateFaceBasedOnEmotion === 'function') {
+          try { updateFaceBasedOnEmotion(emotionResults); } catch (err) { console.warn('updateFaceBasedOnEmotion error', err); }
+        }
+        // Allow external handlers to receive the raw emotion probabilities.  If
+        // a global handleEmotionOutput function is defined, pass the
+        // prediction object directly to it.  This enables custom
+        // responses or side effects outside of this component.
+        if (typeof handleEmotionOutput === 'function') {
+          try { handleEmotionOutput(emotionResults); } catch (err) { console.warn('handleEmotionOutput error', err); }
+        }
+        if (typeof speakResponse === 'function') {
+          try { speakResponse(emotionResults); } catch (err) { console.warn('speakResponse error', err); }
+        }
+      } catch (err) {
+        console.warn('Emotion prediction failed:', err);
+      }
+
+      // Start with rule-based detection.
+      let category = detectCategory(text);
+      // If a trained model exists, query it for a prediction.
+      try {
+        const result = await modelPredictCategory(text);
+        // If the model is confident and the category exists, override.
+        if (result && result.confidence > 0.65 && categories[result.category]) {
+          category = result.category;
+        }
+      } catch (err) {
+        console.warn('Model prediction failed:', err);
+      }
+      // Record the predicted category for feedback and update personality.
+      lastPredictedCategory = category;
+      updatePersonality(category);
+      // Apply category updates.
+      const catObj = categories[category] || categories.default;
+      catObj.update(emotion);
+      // Apply phrase-level priorities.
+      applyPhrasePriorities(text, emotion);
+      // SVO detection for potential future logic (logged only).
+      const svo = detectSVO(text);
+      if (svo) { console.log('SVO detected', svo); }
+      // Render the entity now that emotions have changed.
+      renderEntity();
+      // If this text has previously been corrected and the model now predicts the correct category,
+      // acknowledge the learning progress.
+      const normText = text.toLowerCase().trim();
+      if (trainingHistory[normText] && trainingHistory[normText].corrected) {
+        const correctedCat = trainingHistory[normText].corrected;
+        if (category === correctedCat && !trainingHistory[normText].improved) {
+          trainingHistory[normText].improved = true;
+          savePersistentData();
+          const progressMsg = translations[currentLanguage].learningProgress;
+          conversation.push({ user: '', reply: progressMsg });
+          if (conversation.length > 30) conversation.shift();
+          updateConversation();
+          speak(progressMsg);
+        }
+      }
+      // Choose a random reply and adapt it based on personality.
+      const replies = catObj.responses;
+      const baseReply = replies[Math.floor(Math.random() * replies.length)];
+      const reply = adaptReplyBasedOnPersonality(baseReply);
+      // Generate a smarter reply by incorporating emotion and SVO context.
+      const finalReply = await generateSmartReply(text, reply, lastEmotionResults);
+      conversation.push({ user: text, reply: finalReply });
+      if (conversation.length > 30) conversation.shift();
+      updateConversation();
+      // Update the memory display with both recent inputs and any
+      // extracted topics.  Topics are shown in brackets after the
+      // inputs, separated by commas.
+      {
+        let memStr = memory.join(' | ');
+        if (Array.isArray(memory.topics) && memory.topics.length > 0) {
+          memStr += ' [' + memory.topics.join(', ') + ']';
+        }
+        memoryBox.textContent = translations[currentLanguage].memoryPrefix + ' ' + memStr;
+      }
+      try {
+        localStorage.setItem('egoMemory', JSON.stringify(memory));
+        // Persist topics separately since custom properties on arrays are
+        // not included when stringifying.  If memory.topics does not
+        // exist, default to an empty array.  This call ensures the
+        // extracted nouns survive page reloads.
+        const topicsToStore = Array.isArray(memory.topics) ? memory.topics : [];
+        localStorage.setItem('egoMemoryTopics', JSON.stringify(topicsToStore));
+        localStorage.setItem('egoConversation', JSON.stringify(conversation));
+      } catch (e) {}
+      // Speak the final reply (if voice is enabled).
+      speak(finalReply);
+      // Show a feedback prompt so the user can evaluate the classification.
+      showFeedbackPrompt(category);
+      // Update statistics display initially (no effect if zero interactions yet).
+      updateStatsDisplay();
+    }
+
+    // === Additional settings functions and event listeners ===
+    /**
+     * Clear only the visible conversation history while preserving memory
+     * and learned model data.  This resets the conversation array and
+     * updates browser storage accordingly.
+     */
+    function clearConversation() {
+      conversation = [];
+      responseBox.innerHTML = '';
+      try {
+        localStorage.setItem('egoConversation', JSON.stringify(conversation));
+      } catch (e) {
+        /* ignore storage errors */
+      }
+      // Also reset any accumulated misclassification statistics so that
+      // lingering confusion messages are cleared.  The confusion counts
+      // are persisted separately and need to be reset explicitly.
+      misclassificationCounts = {};
+      try {
+        localStorage.setItem('misclassificationCounts', JSON.stringify(misclassificationCounts));
+      } catch (e) {
+        /* ignore storage errors */
+      }
+      // Update the error statistics display to reflect the cleared state.
+      updateErrorStatsMessage();
+    }
+    /**
+     * Toggle voice input and output on/off.  When disabled, the microphone
+     * button is hidden and the speak() function will not trigger speech.
+     * The setting is persisted to localStorage.
+     */
+    function toggleVoice() {
+      // Toggle whether EgoMorph will speak its replies via speech synthesis.
+      voiceEnabled = !voiceEnabled;
+      // Persist the flag.  Do not hide the microphone here; the microphone
+      // remains available for voice input regardless of this setting.
+      try {
+        localStorage.setItem('voiceEnabled', voiceEnabled ? 'true' : 'false');
+      } catch (e) {
+        /* ignore storage errors */
+      }
+    }
+    // Register event listeners after page load for settings UI controls.
+    window.addEventListener('load', () => {
+      const settingsToggle = document.getElementById('settingsToggle');
+      const settingsPanel = document.getElementById('settingsPanel');
+      const clearBtn = document.getElementById('clearConvBtn');
+      const toggleBtn = document.getElementById('toggleVoiceBtn');
+      const downloadBtn = document.getElementById('downloadModelBtn');
+      const setDefBtn = document.getElementById('setDefaultEmotionBtn');
+      const selectEm = document.getElementById('defaultEmotionSelect');
+      // Grab references for the new info and custom response UI elements.
+      const infoToggle = document.getElementById('infoToggle');
+      const infoPanel = document.getElementById('infoPanel');
+      const customEmotionSelect = document.getElementById('customEmotionSelect');
+      const customResponseInput = document.getElementById('customResponseInput');
+      const addCustomResponseBtn = document.getElementById('addCustomResponseBtn');
+      const customResponseList = document.getElementById('customResponseList');
+
+      // Helper to update the list of custom responses shown in the settings.
+      function updateCustomList() {
+        if (!customEmotionSelect || !customResponseList) return;
+        const custom = getCustomResponses();
+        const selectedKey = customEmotionSelect.value;
+        const list = Array.isArray(custom[selectedKey]) ? custom[selectedKey] : [];
+        // Clear existing entries
+        customResponseList.innerHTML = '';
+        // Build a list of responses with individual remove buttons so that
+        // the user can delete specific custom responses.  Each item is
+        // represented by a <div> with the text and a small button.  When
+        // the button is clicked, the entry is removed from both the
+        // persisted custom response storage and the live categories.
+        list.forEach((resp, i) => {
+          const item = document.createElement('div');
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.marginBottom = '2px';
+          const span = document.createElement('span');
+          span.textContent = `${i + 1}. ${resp}`;
+          span.style.flexGrow = '1';
+          const btn = document.createElement('button');
+          btn.textContent = '✖';
+          btn.className = 'remove-response';
+          btn.dataset.index = i;
+          // Styling for the remove button to match the dark theme
+          btn.style.background = '#444';
+          btn.style.color = '#eee';
+          btn.style.border = 'none';
+          btn.style.padding = '2px 6px';
+          btn.style.cursor = 'pointer';
+          btn.style.marginLeft = '5px';
+          // Append elements
+          item.appendChild(span);
+          item.appendChild(btn);
+          customResponseList.appendChild(item);
+        });
+      }
+
+      // Toggle display of the info panel when the info button is clicked.
+      if (infoToggle && infoPanel) {
+        infoToggle.addEventListener('click', () => {
+          infoPanel.style.display = infoPanel.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+
+      // When the selected emotion changes, update the displayed list of
+      // custom responses for that emotion.
+      if (customEmotionSelect) {
+        customEmotionSelect.addEventListener('change', updateCustomList);
+      }
+
+      // Add a new custom response when the user clicks the add button.
+      if (addCustomResponseBtn && customEmotionSelect && customResponseInput) {
+        addCustomResponseBtn.addEventListener('click', () => {
+          const selectedKey = customEmotionSelect.value;
+          const text = customResponseInput.value.trim();
+          if (!selectedKey || !text) return;
+          // Update stored custom responses in localStorage.
+          const custom = getCustomResponses();
+          if (!custom[selectedKey]) custom[selectedKey] = [];
+          custom[selectedKey].push(text);
+          saveCustomResponses(custom);
+          // Append to the live categories structure for immediate use.
+          const catKey = emotionCategoryMap[selectedKey];
+          if (catKey && categories[catKey]) {
+            categories[catKey].responses.push(text);
+          }
+          // Clear input and refresh the list display.
+          customResponseInput.value = '';
+          updateCustomList();
+        });
+      }
+
+      // Allow users to remove individual custom responses by clicking the ✖ button
+      // next to each entry.  Use event delegation so that the handler
+      // attaches once and works for dynamically created buttons.
+      if (customResponseList && customEmotionSelect) {
+        customResponseList.addEventListener('click', (e) => {
+          const target = e.target;
+          if (target && target.classList.contains('remove-response')) {
+            const idx = parseInt(target.dataset.index, 10);
+            if (isNaN(idx)) return;
+            const key = customEmotionSelect.value;
+            const custom = getCustomResponses();
+            const list = Array.isArray(custom[key]) ? custom[key] : [];
+            if (idx >= 0 && idx < list.length) {
+              // Remove the selected response from the custom array
+              const [removed] = list.splice(idx, 1);
+              custom[key] = list;
+              saveCustomResponses(custom);
+              // Also remove it from the live categories responses list
+              const catKey = emotionCategoryMap[key];
+              if (catKey && categories[catKey]) {
+                // Remove all instances of the response from the responses array
+                categories[catKey].responses = categories[catKey].responses.filter(r => r !== removed);
+              }
+              updateCustomList();
+            }
+          }
+        });
+      }
+
+      // Populate the custom responses list once on load.
+      updateCustomList();
+      if (settingsToggle && settingsPanel) {
+        settingsToggle.addEventListener('click', () => {
+          settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          clearConversation();
+        });
+      }
+      if (toggleBtn) {
+        // Set the initial button text based on current state and language.
+        toggleBtn.textContent = voiceEnabled
+          ? translations[currentLanguage].voiceDeactivate
+          : translations[currentLanguage].voiceActivate;
+        toggleBtn.addEventListener('click', () => {
+          toggleVoice();
+          // Update the button text after toggling using the translation dictionary.
+          toggleBtn.textContent = voiceEnabled
+            ? translations[currentLanguage].voiceDeactivate
+            : translations[currentLanguage].voiceActivate;
+        });
+      }
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', async () => {
+          // Trigger downloads of the trained models if available.  Use
+          // TensorFlow.js built‑in download mechanism to prompt the user.
+          if (typeof tfModel !== 'undefined' && tfModel) {
+            try {
+              await tfModel.save('downloads://egoMorphCategoryModel');
+            } catch (err) {
+              console.warn('Category model download failed', err);
+            }
+          }
+          if (typeof emotionModel !== 'undefined' && emotionModel) {
+            try {
+              await emotionModel.save('downloads://egoMorphEmotionModel');
+            } catch (err) {
+              console.warn('Emotion model download failed', err);
+            }
+          }
+        });
+      }
+      if (setDefBtn && selectEm) {
+        setDefBtn.addEventListener('click', () => {
+          const sel = selectEm.value;
+          if (sel && emotion[sel] !== undefined) {
+            for (const key in emotion) {
+              emotion[key] = (key === sel ? 60 : 10);
+            }
+            try {
+              localStorage.setItem('defaultEmotion', sel);
+            } catch (e) {
+              /* ignore */
+            }
+            renderEntity();
+          }
+        });
+      }
+
+      // Set up language selector and apply current language settings on load.
+      const langSelectElem = document.getElementById('languageSelect');
+      if (langSelectElem) {
+        langSelectElem.value = currentLanguage;
+        langSelectElem.addEventListener('change', (e) => {
+          changeLanguage(e.target.value);
+        });
+      }
+      // Refresh the UI to reflect the stored language preference.
+      updateUIForLanguage();
+      // Update error statistics on initial load.
+      updateErrorStatsMessage();
+    });
+
+    // Initial render to set up eyes/mouth.
+    renderEntity();
+
+    // === Gaze tracking with mouse movement ===
+    // Listen for pointer movements and update pupil positions relative to
+    // each eye.  The offset is calculated based on the pointer’s
+    // displacement from the centre of each eye and clamped so the pupils
+    // remain inside the whites.  Multiplying by 50% converts the
+    // normalised offset into percentage translation values.  This
+    // handler runs continuously and leverages the short CSS transition
+    // defined on `.pupil` for smooth movement.
+    document.addEventListener('mousemove', (ev) => {
+      // Only proceed if pupils and eyes are available.
+      if (!leftEye || !rightEye || !leftPupil || !rightPupil) return;
+      // Helper function to update a single eye’s pupil position.  This
+      // implementation adjusts the CSS left/top properties rather than
+      // using transform.  Starting from a base of 30%, the pupil can
+      // move up to ±10% of the eye’s width/height along each axis.
+      const updatePupilPos = (eyeEl, pupilEl) => {
+        const rect = eyeEl.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        // Normalise displacement relative to eye size
+        let dx = (ev.clientX - cx) / rect.width;
+        let dy = (ev.clientY - cy) / rect.height;
+        // Clamp to avoid leaving the whites
+        const maxOffset = 0.5;
+        dx = Math.max(-maxOffset, Math.min(maxOffset, dx));
+        dy = Math.max(-maxOffset, Math.min(maxOffset, dy));
+        // Compute new top/left positions as percentages.  Base position
+        // centres the pupil at 30% top/left; we add up to ±10% shift.
+        // Base position corresponds to the initial left/top defined in the CSS (25%).
+        const basePos = 25;
+        // Allow the pupil to move further away from the centre by
+        // increasing the range.  A range of 20 permits ±10% offsets
+        // relative to the base position, providing a more noticeable
+        // movement across the eye.
+        const range = 20;
+        const newLeft = basePos + dx * range;
+        const newTop = basePos + dy * range;
+        pupilEl.style.left = `${newLeft}%`;
+        pupilEl.style.top = `${newTop}%`;
+      };
+      updatePupilPos(leftEye, leftPupil);
+      updatePupilPos(rightEye, rightPupil);
+    });
+
+    // Anleitung zum Hinzufügen neuer Emotionen:
+    //
+    // Um zusätzliche Emotionen wie "angst" oder "ueberraschung" zu integrieren,
+    // gehe so vor:
+    // 1. Füge der Liste emotionClasses die neue Emotion hinzu.
+    // 2. Ergänze emotionTrainingPhrases um ein Array mit vielen Beispielsätzen für
+    //    diese Emotion.  Mindestens 20–30 Sätze mit varianten Formulierungen sind
+    //    empfehlenswert.
+    // 3. Beim nächsten Laden der Seite werden Vokabular und Modelle automatisch
+    //    aktualisiert und trainiert.  Die Speicherung erfolgt im Browser,
+    //    sodass neu gelernte Modelle wiederverwendet werden.
+  // ====== PWA and Welcome Modal Setup ======
+  document.addEventListener('DOMContentLoaded', () => {
+    // Show welcome message once
+    const modal = document.getElementById('welcomeModal');
+    const closeBtn = document.getElementById('closeModalBtn');
+    if (modal) {
+      if (localStorage.getItem('welcomeShown')) {
+        modal.style.display = 'none';
+      } else {
+        modal.style.display = 'flex';
+      }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          modal.style.display = 'none';
+          localStorage.setItem('welcomeShown', 'true');
+        });
+      }
+    }
+    // Prepare installation button for PWA
+    const installBtn = document.createElement('button');
+    installBtn.id = 'installBtn';
+    if (typeof translations !== 'undefined' && translations[currentLanguage] && translations[currentLanguage].installBtn) {
+      installBtn.textContent = translations[currentLanguage].installBtn;
+    } else {
+      installBtn.textContent = 'Installieren';
+    }
+    const inputSection = document.getElementById('inputSection');
+    if (inputSection) {
+      inputSection.insertBefore(installBtn, inputSection.firstChild);
+    }
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.log('Service worker registration failed:', err);
+      });
+    }
+  });
+</script>
+  <!-- Load the appearance settings logic.  This separate script
+       listens for changes on the shape and colour selectors in the
+       settings panel and applies them to the entity.  Keeping this
+       functionality in its own file avoids cluttering the main
+       index.html with implementation details. -->
+  <!-- Load the appearance settings script with the defer attribute so
+       that it executes after the document has been parsed.  This
+       ensures the relevant DOM elements are available without
+       needing to wait for DOMContentLoaded manually. -->
+  <script src="ego_settings.js" defer></script>
+</body>
+</html>
