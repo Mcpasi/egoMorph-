@@ -222,7 +222,22 @@
       border-radius: 4px;
       display: none;
     }
-  </style>
+  
+/* Scrollable response/chat area */
+#response {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+#response::-webkit-scrollbar {
+  width: 8px;
+}
+#response::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+
+</style>
   <!-- __RESPONSIVE_CSS__ -->
 
   <style>
@@ -332,7 +347,17 @@
           <option value="vertrauen">Vertrauen</option>
           <option value="ueberraschung">Überraschung</option>
         </select>
-        <button id="setDefaultEmotionBtn">Festlegen</button>
+        <button id="setDefaultEmotionBtn">
+        
+    Festlegen</button>
+<!-- User name setting for personalized addressing -->
+        <div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+          <label for="userNameInput" style="font-size:0.9em;">Dein&nbsp;Name:</label>
+          <input id="userNameInput" type="text" placeholder="z.&nbsp;B. Pascal" style="flex:1; min-width:120px;">
+          <button id="saveUserNameBtn">Speichern</button><button id="clearUserNameBtn" title="Name entfernen">Löschen</button>
+          <span id="currentUserName" style="font-size:0.85em; opacity:0.8;"></span>
+        </div>
+
       </div>
       <!-- Section for users to define their own responses for each emotion.  This
            allows personalization of EgoMorph by extending the built‑in
@@ -395,10 +420,8 @@
       <p id="infoContent" style="margin:0; font-size:0.9em; line-height:1.4;">
         EgoMorph ist ein interaktives Projekt, das mit Liebe und Neugier auf
         die Erforschung von Emotionen und maschinellem Lernen entstanden ist.
-        </br>
-        Datenschutz:
-        </br>
-        EgoMorph speichert keinerlei Daten, er speichert nur lokal.
+        Dieser Platzhaltertext kann später mit Informationen über die
+        Entstehung, Ideen und Philosophie von EgoMorph ersetzt werden.
       </p>
     </div>
   </div>
@@ -890,7 +913,7 @@
           vertrauen:'Vertrauen',
           ueberraschung:'Überraschung'
         },
-        infoText: 'EgoMorph ist ein interaktives Projekt, das mit Liebe und Neugier auf die Erforschung von Emotionen und maschinellem Lernen entstanden ist.',
+        infoText: 'EgoMorph ist ein interaktives Projekt, das mit Liebe und Neugier auf die Erforschung von Emotionen und maschinellem Lernen entstanden ist. Dieser Platzhaltertext kann später mit Informationen über die Entstehung, Ideen und Philosophie von EgoMorph ersetzt werden.',
         memoryPrefix: 'Ich erinnere mich an:',
         youPrefix: 'Du:',
         alternativeBtn: 'Diese Antwort wäre besser gewesen.',
@@ -1731,7 +1754,9 @@
             // Perform a small incremental fit on the single new example.
             const xs = tf.tensor2d([inputVec]);
             const ys = tf.tensor2d([labelVec]);
-            await tfModel.fit(xs, ys, { epochs: 2, batchSize: 1, shuffle: false });
+            await tfModel.fit(xs, ys, { epochs: 5, batchSize: 1, shuffle: false });
+            // Feedback replay to consolidate corrections
+            if (window._egoFeedbackReplay) { await window._egoFeedbackReplay(tfModel, inputVec, labelVec, CATEGORY_MODEL_STORAGE_KEY); }
             // Save updated model to local storage.
             await tfModel.save('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
           } catch (err) {
@@ -1975,7 +2000,9 @@
         trainingOutputs.push(labelVec);
         const xs = tf.tensor2d([inputVec]);
         const ys = tf.tensor2d([labelVec]);
-        await tfModel.fit(xs, ys, { epochs: 2, batchSize: 1, shuffle: false });
+        await tfModel.fit(xs, ys, { epochs: 5, batchSize: 1, shuffle: false });
+            // Feedback replay to consolidate corrections
+            if (window._egoFeedbackReplay) { await window._egoFeedbackReplay(tfModel, inputVec, labelVec, CATEGORY_MODEL_STORAGE_KEY); }
         await tfModel.save('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
       } catch (err) {
         console.warn('Incremental training failed', err);
@@ -3024,6 +3051,134 @@
       }
     }
   </script>
+
+
+<script>
+(() => {
+  // Personalize replies by addressing the saved user name, if available.
+  const _origGen = window.generateSmartReply;
+  if (typeof _origGen === 'function') {
+    window.generateSmartReply = async function(text, reply, emotionResults) {
+      const base = await _origGen(text, reply, emotionResults);
+      let name = '';
+      try { name = localStorage.getItem('egoUserName') || ''; } catch (_) {}
+      if (name && typeof name === 'string' && name.trim()) {
+        return name.trim() + ', ' + base;
+      }
+      return base;
+    };
+  }
+  // Settings UI handlers for name save/load.
+  function applySavedNameToUI() {
+    try {
+      const n = localStorage.getItem('egoUserName') || '';
+      const outEl = document.getElementById('currentUserName');
+      if (outEl) {
+        outEl.textContent = n ? '(gespeichert: ' + n + ')' : '';
+      }
+      const input = document.getElementById('userNameInput');
+      if (input && n && !input.value) input.value = n;
+    } catch (_) {}
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('saveUserNameBtn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('userNameInput');
+        if (!input) return;
+        const val = (input.value || '').trim();
+        try { localStorage.setItem('egoUserName', val); } catch (_) {}
+        applySavedNameToUI();
+      });
+    }
+    applySavedNameToUI();
+    const clr = document.getElementById('clearUserNameBtn');
+    if (clr) { clr.addEventListener('click', () => { try { localStorage.removeItem('egoUserName'); } catch(_){ } applySavedNameToUI(); }); }
+  });
+
+  // Lightweight long‑term memory manager
+  const LTM_KEY = 'egoLongTermMemory';
+  function loadLTM() {
+    try { return JSON.parse(localStorage.getItem(LTM_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveLTM(arr) {
+    try { localStorage.setItem(LTM_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+  function addLongTermMemory(entry) {
+    if (!entry || !entry.text) return;
+    const now = Date.now();
+    const ltm = loadLTM();
+    ltm.push({ text: String(entry.text).slice(0, 280), topics: entry.topics || [], ts: now, hits: 0 });
+    // Keep memory bounded and prune the oldest while preserving higher‑hit items.
+    ltm.sort((a,b) => (b.hits||0) - (a.hits||0) || (b.ts - a.ts));
+    const MAX = 200;
+    const trimmed = ltm.slice(0, MAX);
+    saveLTM(trimmed);
+  }
+  // Expose a simple query to fetch top relevant LTM snippets
+  window.queryLongTermMemory = function(query, k=3) {
+    const ltm = loadLTM();
+    const q = (query || '').toLowerCase();
+    for (const e of ltm) {
+      const txt = (e.text || '').toLowerCase();
+      // naive relevance: topic overlap or substring
+      const score = (Array.isArray(e.topics) && e.topics.some(t => q.includes(String(t).toLowerCase()))) ? 2 : 0;
+      const has = txt.includes(q) ? 1 : 0;
+      e._score = score + has + Math.log10(1 + Math.max(0, (Date.now() - (e.ts||0)) / (1000*60*60*24)));
+    }
+    ltm.sort((a,b) => (b._score||0) - (a._score||0));
+    const top = ltm.slice(0, k);
+    for (const e of top) e.hits = (e.hits||0) + 1;
+    saveLTM(ltm);
+    return top.map(e => e.text);
+  };
+
+  // Hook into memory persistence spot to also capture LTM
+  const _setItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value) {
+    try {
+      if (key === 'egoMemory' || key === 'egoConversation' || key === 'egoMemoryTopics') {
+        // attempt to parse and store last user utterance + topics into LTM
+        try {
+          const conv = key === 'egoConversation' ? JSON.parse(value) : JSON.parse(localStorage.getItem('egoConversation') || '[]');
+          const mem = key === 'egoMemory' ? JSON.parse(value) : JSON.parse(localStorage.getItem('egoMemory') || '[]');
+          const topics = key === 'egoMemoryTopics' ? JSON.parse(value) : JSON.parse(localStorage.getItem('egoMemoryTopics') || '[]');
+          // last user message is the last with a non-empty 'user'
+          if (Array.isArray(conv) && conv.length > 0) {
+            for (let i = conv.length - 1; i >= 0; i--) {
+              if (conv[i] && conv[i].user && String(conv[i].user).trim()) {
+                addLongTermMemory({ text: conv[i].user, topics });
+                break;
+              }
+            }
+          } else if (Array.isArray(mem) && mem.length > 0) {
+            addLongTermMemory({ text: mem[mem.length - 1], topics });
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return _setItem(key, value);
+  };
+
+  // Feedback learning booster: keep a small replay buffer of corrected samples and fine‑tune briefly.
+  window._egoFeedbackReplay = async function(tfModel, inputVec, labelVec, storageKey) {
+    try {
+      const key = 'egoFeedbackBuffer';
+      let buf = [];
+      try { buf = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_){}
+      buf.push({ x: inputVec, y: labelVec });
+      if (buf.length > 50) buf.shift();
+      localStorage.setItem(key, JSON.stringify(buf));
+      // quick replay
+      const xs2 = tf.tensor2d(buf.map(b => b.x));
+      const ys2 = tf.tensor2d(buf.map(b => b.y));
+      await tfModel.fit(xs2, ys2, { epochs: 1, batchSize: Math.min(8, buf.length), shuffle: true });
+      await tfModel.save('localstorage://' + storageKey);
+      xs2.dispose?.(); ys2.dispose?.();
+    } catch (e) { console.warn('feedback replay failed', e); }
+  };
+})();
+</script>
 
 </body>
 </html>
