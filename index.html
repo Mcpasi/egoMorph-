@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>EgoMorph Optimiert – TensorFlow.js Version</title>
   <!-- Progressive Web App (PWA) support -->
   <!-- Link to the web app manifest which defines how the app behaves when installed on a mobile device -->
@@ -222,6 +223,59 @@
       display: none;
     }
   </style>
+  <!-- __RESPONSIVE_CSS__ -->
+
+  <style>
+    :root{
+      --bg:#0b0b0f;--fg:#e9e9ef;--muted:#a9a9b6;--accent:#6ea8fe;--accent-2:#8b5cf6;--card:#12121a;--border:#222235;
+      --radius:16px;--shadow:0 6px 24px rgba(0,0,0,.35)
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#0f1117);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+    .app{
+      max-width:1100px;margin:0 auto;padding:16px 16px 88px; /* leave space for mobile bottom bar */
+    }
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .toolbar{position:sticky;top:0;z-index:50;background:rgba(15,17,23,.7);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--border)}
+    .toolbar .inner{display:flex;gap:12px;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:10px 16px}
+    .toolbar h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}
+    .toolbar .actions{display:flex;gap:8px}
+    button,.btn{
+      display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#191a23;color:var(--fg);
+      padding:10px 14px;border-radius:12px;cursor:pointer;transition:.2s transform,.2s background;touch-action:manipulation;
+    }
+    button:active{transform:translateY(1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:16px}
+    .panel{padding:14px}
+    .chat{display:flex;flex-direction:column;gap:12px}
+    .msg{padding:12px 14px;border-radius:14px;line-height:1.45}
+    .msg.user{background:#1b2330;border:1px solid #1f2a3a}
+    .msg.bot{background:#1a1a25;border:1px solid #24243a}
+    .input-bar{
+      position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);
+      border-top:1px solid var(--border);padding:10px 12px;
+    }
+    .input-inner{max-width:1100px;margin:0 auto;display:flex;gap:10px}
+    .input-inner input[type="text"], .input-inner textarea{
+      flex:1;background:#141624;border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--fg);
+      min-height:44px;resize:none
+    }
+    .toast{position:fixed;right:14px;bottom:88px;background:#10131a;border:1px solid #203047;border-radius:12px;padding:10px 12px;opacity:0;transform:translateY(10px);transition:.25s}
+    .toast.show{opacity:1;transform:none}
+    @media (max-width: 960px){
+      .grid{grid-template-columns:1fr}
+      .toolbar h1{font-size:16px}
+      .panel{padding:12px}
+      .app{padding-bottom:92px}
+    }
+    @media (hover:hover){
+      button:hover{background:#202235}
+      .btn-primary:hover{filter:brightness(1.06)}
+    }
+  </style>
+
 </head>
 <body>
   <!-- Logo and welcome modal -->
@@ -2851,5 +2905,123 @@
        ensures the relevant DOM elements are available without
        needing to wait for DOMContentLoaded manually. -->
   <script src="ego_settings.js" defer></script>
+
+  <script>
+    // === Lightweight NLP Boost (non-breaking) ===
+    // Keeps all existing functions. We add helpers and call them from generateSmartReply.
+    const __stopwords = new Set(['der','die','das','und','oder','aber','denn','ein','eine','einer','einem','einen','ist','sind','war','waren','zu','mit','auf','an','im','in','am','vom','vom','für','von','wie','ich','du','er','sie','es','wir','ihr','sie','mal','halt','eben','auch','noch','schon','nur','nicht','kein','keine']);
+    const __synonyms = {
+      traurig:['depressiv','down','betrübt','bedrückt','niedergeschlagen','traurig'],
+      wütend:['sauer','aggressiv','genervt','wut','ausrasten','ausflippen','zornig','wütend'],
+      froh:['glücklich','happy','zufrieden','erleichtert','freu mich','yay','nice'],
+      angst:['ängstlich','angst','unsicher','panik','sorge','besorgt']
+    };
+    const __intents = [
+      {name:'frage_faehigkeit', patterns:['was kannst du','wozu bist du in der lage','was machst du','was kann ego','deine funktionen']},
+      {name:'speichern', patterns:['speicher','save','merken','erinner','notier','speichere das']},
+      {name:'hilfe', patterns:['hilfe','help','wie geht','anleitung','schritt für schritt']},
+      {name:'feedback_neg', patterns:['du liegst falsch','stimmt nicht','nein falsch','das ist falsch','komplett daneben']},
+      {name:'stimmung', patterns:['mir geht es','ich fühle','bin','stimmung','laune']},
+    ];
+    function __normalize(t){
+      return (t||'').toLowerCase()
+        .replace(/[\u0300-\u036f]/g,'') // strip diacritics
+        .replace(/[^\p{L}\p{N}\s]/gu,' ')
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+    function __tokens(t){
+      const norm = __normalize(t);
+      return norm.split(' ').filter(w=>w && !__stopwords.has(w));
+    }
+    function __lev(a,b){
+      // Damerau–Levenshtein distance (small, fast)
+      const al=a.length, bl=b.length;
+      const dp=Array.from({length:al+1},()=>Array(bl+1).fill(0));
+      for(let i=0;i<=al;i++) dp[i][0]=i;
+      for(let j=0;j<=bl;j++) dp[0][j]=j;
+      for(let i=1;i<=al;i++){
+        for(let j=1;j<=bl;j++){
+          const cost=a[i-1]===b[j-1]?0:1;
+          dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+          if(i>1 && j>1 && a[i-1]===b[j-2] && a[i-2]===b[j-1]){
+            dp[i][j]=Math.min(dp[i][j], dp[i-2][j-2]+1);
+          }
+        }
+      }
+      return dp[al][bl];
+    }
+    function __fuzzyIncludes(text, pattern){
+      const t = __normalize(text);
+      const p = __normalize(pattern);
+      if (t.includes(p)) return true;
+      // token-level fuzzy
+      const tt = __tokens(t);
+      const pt = __tokens(p);
+      let hits=0;
+      pt.forEach(pw=>{
+        const best = Math.min(...tt.map(tw => __lev(pw, tw)));
+        if (best <= Math.max(1, Math.floor(pw.length*0.34))) hits++;
+      });
+      return hits >= Math.max(1, Math.ceil(pt.length*0.6));
+    }
+    function __detectIntent(text){
+      for(const intent of __intents){
+        for(const pat of intent.patterns){
+          if(__fuzzyIncludes(text, pat)) return intent.name;
+        }
+      }
+      return null;
+    }
+    function __expandSynonyms(text){
+      // augment text by appending synonym tags that help simple models
+      const lower = text.toLowerCase();
+      let tags = [];
+      for(const [k,arr] of Object.entries(__synonyms)){
+        for(const w of arr){
+          if(lower.includes(w)){
+            tags.push('#'+k);
+            break;
+          }
+        }
+      }
+      return text + (tags.length?(' '+tags.join(' ')):'');
+    }
+
+    // Patch hook: wrap the existing send/compose pipeline if present
+    if (typeof window.generateSmartReply === 'function'){
+      const __origSmart = window.generateSmartReply;
+      window.generateSmartReply = function(text, reply, emotionResults){
+        // Enrich input with synonyms and infer intent
+        const enriched = __expandSynonyms(text);
+        const intent = __detectIntent(enriched);
+        let better = __origSmart(enriched, reply, emotionResults);
+        // Light intent-based refinement
+        if(intent==='hilfe'){
+          better = better + ' Wenn du magst, führe ich dich Schritt für Schritt durch.';
+        } else if(intent==='speichern'){
+          better = 'Verstanden. Ich habe das markiert. Möchtest du es dauerhaft speichern? ' + better;
+        } else if(intent==='feedback_neg'){
+          better = 'Danke für das klare Feedback. Ich passe meine Interpretation an. ' + better;
+        }
+        return better;
+      }
+    }
+    // Calibrate emotion prediction confidence to avoid overconfident wrong answers
+    if (typeof window.predictEmotionDistribution === 'function'){
+      const _oldPred = window.predictEmotionDistribution;
+      window.predictEmotionDistribution = async function(text){
+        const out = await _oldPred(__expandSynonyms(text));
+        // Smooth distribution a bit
+        const keys = Object.keys(out);
+        const eps = 0.02;
+        let sum = 0;
+        keys.forEach(k=>{ out[k] = Math.max(eps, out[k]); sum += out[k]; });
+        keys.forEach(k=>{ out[k] /= sum; });
+        return out;
+      }
+    }
+  </script>
+
 </body>
 </html>
