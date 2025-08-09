@@ -205,6 +205,23 @@
       cursor: pointer;
       font-size: 1.4em;
     }
+
+    /*
+      Ensure the send and microphone buttons don’t sit so close together that
+      tapping one inadvertently triggers the other.  By forcing these
+      controls onto their own lines and giving the microphone a little
+      extra breathing room, we reduce the chance of accidental clicks on
+      touch devices.  The increased margin on the speech button also
+      separates it visually from the send button.
+    */
+    #sendBtn,
+    #speechButton {
+      display: block;
+      width: 100%;
+    }
+    #speechButton {
+      margin-top: 16px;
+    }
     #response {
       margin-top: 20px;
       width: min(320px, 90vw);
@@ -623,8 +640,19 @@
       try {
         const defEm = localStorage.getItem('defaultEmotion');
         if (defEm && emotion[defEm] !== undefined) {
+          // Apply the stored default emotion values by bumping the selected
+          // emotion and resetting the others to a lower baseline.  Without
+          // this loop the mood would always reset to the initial defaults on
+          // page reload.
           for (const key in emotion) {
             emotion[key] = (key === defEm ? 60 : 10);
+          }
+          // Also update the settings dropdown so that the UI reflects
+          // the persisted default.  When the user revisits the page
+          // the select box will automatically show their last choice.
+          const defSelectEl = document.getElementById('defaultEmotionSelect');
+          if (defSelectEl) {
+            defSelectEl.value = defEm;
           }
         }
       } catch (err) {
