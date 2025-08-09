@@ -54,6 +54,61 @@
       --scale: 1;
       transform: scale(var(--scale));
     }
+    /*
+      Evil mode styling.  When the entity has the `evil` class, its
+      appearance changes dramatically to signal that EgoMorph is in a bad
+      mood.  The background shifts to deep reds, the box shadow glows
+      ominously and horns appear using pseudo-elements.  The eyes and
+      mouth are also restyled via descendant selectors below.
+    */
+    #entity.evil {
+      background: radial-gradient(circle at center, #a00, #300);
+      box-shadow: 0 0 40px #b00;
+      /* Allow horns to protrude above the entity.  Without this,
+         pseudo-elements are clipped by the default overflow hidden on
+         #entity. */
+      overflow: visible;
+    }
+    /* Draw horns using pseudo-elements.  These triangles sit above the
+       entity when evil mode is active.  Absolute positioning is used
+       relative to the #entity container. */
+    #entity.evil::before,
+    #entity.evil::after {
+      content: '';
+      position: absolute;
+      z-index: 1;
+      width: 0;
+      height: 0;
+      /* Colour the horns a brighter red so that they stand out against
+         the entity’s glow. */
+      /* Increase the size of the horns so they are clearly visible. */
+      border-bottom: 24px solid #f55;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      top: -24px;
+    }
+    #entity.evil::before {
+      left: 25%;
+    }
+    #entity.evil::after {
+      right: 25%;
+    }
+    /* When evil, change the eyes to lighter red and pupils to dark. */
+    #entity.evil .eye {
+      background: #fcc;
+    }
+    #entity.evil .pupil {
+      background: #600;
+    }
+    /* Make the mouth look like a grimacing frown in evil mode.  The
+       border is coloured red and the mouth is flipped to give a menacing
+       appearance. */
+    #entity.evil #mouth {
+      border: 4px solid #b00;
+      border-bottom: none;
+      border-radius: 50% 50% 0 0;
+      height: 20%;
+    }
     /* Define a shake animation that moves the entity horizontally.  The
        transform references the --scale variable so that the scaling
        applied in JavaScript is preserved during the shaking. */
@@ -158,7 +213,12 @@
       border: 1px solid #444;
       min-height: 60px;
       white-space: pre-wrap;
+      /* Make the response box scrollable and set a maximum height so it
+         doesn’t stretch the layout when the conversation grows.  The
+         overflow-y property is retained to provide a scrollbar when
+         content exceeds the maximum height. */
       overflow-y: auto;
+      max-height: 220px;
       border-radius: 4px;
     }
     #memory {
@@ -222,22 +282,7 @@
       border-radius: 4px;
       display: none;
     }
-  
-/* Scrollable response/chat area */
-#response {
-  max-height: 50vh;
-  overflow-y: auto;
-  padding-right: 6px;
-}
-#response::-webkit-scrollbar {
-  width: 8px;
-}
-#response::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
-  border-radius: 4px;
-}
-
-</style>
+  </style>
   <!-- __RESPONSIVE_CSS__ -->
 
   <style>
@@ -1018,6 +1063,14 @@
     let trainingHistory = {};
     let feedbackComments = [];
     let consecutiveWrong = 0;
+
+    // Track how often the anger category has been triggered in a row.  If the
+    // user’s inputs repeatedly elicit angry responses, EgoMorph will enter
+    // an evil mode.  Friendly categories reset this counter and return
+    // EgoMorph to its normal state.  Evil mode is signalled via the
+    // `evil` CSS class on the entity element.
+    let angerStreak = 0;
+    let evilMode = false;
     // Load persisted variables from localStorage, if available
     (function loadPersistentData() {
       try {
@@ -1306,6 +1359,39 @@
         localStorage.setItem('egoEmotion', JSON.stringify(emotion));
       } catch (err) {
         // Ignore errors when localStorage is unavailable or blocked
+      }
+
+      // When the evil flag is set, override the facial features to create
+      // a menacing appearance.  Inline styles here take precedence over
+      // earlier assignments.  The eyes become narrower and tinted, the
+      // pupils darken and the mouth flips into a frown.  When evilMode
+      // is false, reset any overrides on the pupils so the CSS variable
+      // --pupil-color controls their colour again.
+      if (typeof evilMode !== 'undefined' && evilMode) {
+        // Adjust eyes: narrower height and reddish sclera
+        leftEye.style.height = rightEye.style.height = '12%';
+        leftEye.style.background = '#fcc';
+        rightEye.style.background = '#fcc';
+        // Dark pupils
+        if (typeof leftPupil !== 'undefined' && leftPupil) {
+          leftPupil.style.background = '#600';
+        }
+        if (typeof rightPupil !== 'undefined' && rightPupil) {
+          rightPupil.style.background = '#600';
+        }
+        // Frowning mouth
+        mouth.style.border = '4px solid #b00';
+        mouth.style.borderBottom = 'none';
+        mouth.style.borderRadius = '50% 50% 0 0';
+        mouth.style.height = '20%';
+      } else {
+        // Reset pupil background so it can be controlled via CSS
+        if (typeof leftPupil !== 'undefined' && leftPupil) {
+          leftPupil.style.background = '';
+        }
+        if (typeof rightPupil !== 'undefined' && rightPupil) {
+          rightPupil.style.background = '';
+        }
       }
     }
     /**
@@ -1754,7 +1840,8 @@
             // Perform a small incremental fit on the single new example.
             const xs = tf.tensor2d([inputVec]);
             const ys = tf.tensor2d([labelVec]);
-            await tfModel.fit(xs, ys, { epochs: 5, batchSize: 1, shuffle: false });
+            // Increase epochs to improve learning from individual feedback examples.
+            await tfModel.fit(xs, ys, { epochs: 15, batchSize: 1, shuffle: false });
             // Feedback replay to consolidate corrections
             if (window._egoFeedbackReplay) { await window._egoFeedbackReplay(tfModel, inputVec, labelVec, CATEGORY_MODEL_STORAGE_KEY); }
             // Save updated model to local storage.
@@ -2000,7 +2087,10 @@
         trainingOutputs.push(labelVec);
         const xs = tf.tensor2d([inputVec]);
         const ys = tf.tensor2d([labelVec]);
-        await tfModel.fit(xs, ys, { epochs: 5, batchSize: 1, shuffle: false });
+        // Train for more epochs to better incorporate feedback.  Increasing
+        // epochs from 5 to 15 ensures the model internalises the new example
+        // more strongly without significantly impacting performance.
+        await tfModel.fit(xs, ys, { epochs: 15, batchSize: 1, shuffle: false });
             // Feedback replay to consolidate corrections
             if (window._egoFeedbackReplay) { await window._egoFeedbackReplay(tfModel, inputVec, labelVec, CATEGORY_MODEL_STORAGE_KEY); }
         await tfModel.save('localstorage://' + CATEGORY_MODEL_STORAGE_KEY);
@@ -2518,6 +2608,47 @@
       catObj.update(emotion);
       // Apply phrase-level priorities.
       applyPhrasePriorities(text, emotion);
+
+      // ===== Evil mode logic =====
+      // Update an anger streak counter whenever the predicted category is
+      // outright anger.  If another category follows, decrement the
+      // counter rather than resetting it entirely.  This approach
+      // tolerates occasional misclassifications and still allows the
+      // streak to build when the user expresses anger repeatedly.  Once
+      // the streak reaches two, evil mode is triggered; the streak must
+      // return to zero before evil mode is cleared.  Using the
+      // predicted category rather than the dominant emotion ensures
+      // explicit expressions of anger are what drive the state change.
+      {
+        /*
+         * Determine whether anger is dominating in the current emotion state.
+         * We consider anger dominant if the wut (anger) level exceeds both
+         * freude (joy) and vertrauen (trust) by at least 5 points.  In
+         * practice this catches messages that clearly convey anger even
+         * when the classifier does not assign the “anger” category.  If
+         * anger is dominant or the model explicitly predicts the anger
+         * category, increment the streak.  Friendly categories (joy or
+         * trust) reduce the streak faster.  Other categories (sadness,
+         * fear, etc.) decrement slightly.  Once the streak reaches two,
+         * the evil mode is triggered; it remains active until the streak
+         * drops back to zero.
+         */
+        const angerDominant = emotion.wut > emotion.freude + 5 && emotion.wut > emotion.vertrauen + 5;
+        if (category === 'anger' || angerDominant) {
+          angerStreak = Math.min(angerStreak + 1, 5);
+        } else if (category === 'joy' || category === 'trust') {
+          angerStreak = Math.max(0, angerStreak - 2);
+        } else {
+          angerStreak = Math.max(0, angerStreak - 1);
+        }
+        if (angerStreak >= 2 && !evilMode) {
+          evilMode = true;
+          entity.classList.add('evil');
+        } else if (angerStreak === 0 && evilMode) {
+          evilMode = false;
+          entity.classList.remove('evil');
+        }
+      }
       // SVO detection for potential future logic (logged only).
       const svo = detectSVO(text);
       if (svo) { console.log('SVO detected', svo); }
@@ -3019,22 +3150,28 @@
 
     // Patch hook: wrap the existing send/compose pipeline if present
     if (typeof window.generateSmartReply === 'function'){
-      const __origSmart = window.generateSmartReply;
-      window.generateSmartReply = function(text, reply, emotionResults){
-        // Enrich input with synonyms and infer intent
-        const enriched = __expandSynonyms(text);
-        const intent = __detectIntent(enriched);
-        let better = __origSmart(enriched, reply, emotionResults);
-        // Light intent-based refinement
-        if(intent==='hilfe'){
-          better = better + ' Wenn du magst, führe ich dich Schritt für Schritt durch.';
-        } else if(intent==='speichern'){
-          better = 'Verstanden. Ich habe das markiert. Möchtest du es dauerhaft speichern? ' + better;
-        } else if(intent==='feedback_neg'){
-          better = 'Danke für das klare Feedback. Ich passe meine Interpretation an. ' + better;
+        const __origSmart = window.generateSmartReply;
+        // Wrap the original smart reply generator in an async function so that
+        // Promises returned by __origSmart are properly awaited.  Without
+        // awaiting, concatenating a Promise into a string results in
+        // "[object Promise]" appearing in the output.
+        window.generateSmartReply = async function(text, reply, emotionResults){
+          // Enrich input with synonyms and infer intent
+          const enriched = __expandSynonyms(text);
+          const intent = __detectIntent(enriched);
+          // Await the original function in case it is asynchronous.  If it
+          // returns synchronously, await will simply resolve to its value.
+          let better = await __origSmart(enriched, reply, emotionResults);
+          // Light intent-based refinement
+          if(intent==='hilfe'){
+            better = better + ' Wenn du magst, führe ich dich Schritt für Schritt durch.';
+          } else if(intent==='speichern'){
+            better = 'Verstanden. Ich habe das markiert. Möchtest du es dauerhaft speichern? ' + better;
+          } else if(intent==='feedback_neg'){
+            better = 'Danke für das klare Feedback. Ich passe meine Interpretation an. ' + better;
+          }
+          return better;
         }
-        return better;
-      }
     }
     // Calibrate emotion prediction confidence to avoid overconfident wrong answers
     if (typeof window.predictEmotionDistribution === 'function'){
