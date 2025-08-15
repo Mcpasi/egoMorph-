@@ -7,7 +7,7 @@
 const CACHE_NAME = 'egomorph-cache-v1';
 const URLS_TO_CACHE = [
   './',
-  'index (2) (2) (1).html',
+  'index.html',
   'manifest.json',
   'ego_icon_192.png',
   'ego_icon_512.png'
