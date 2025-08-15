@@ -3254,6 +3254,12 @@
     }
     applySavedNameToUI();
     const clr = document.getElementById('clearUserNameBtn');
+    //New 15.08.2025
+    const ltmExport = document.getElementById('ltmExportBtn');
+    if (ltmExport) { ltmExport.addEventListener('click', exportLongTermMemory); }
+    const ltmClear = document.getElementById('ltmClearBtn');
+    if (ltmClear) { ltmClear.addEventListener('click', clearLongTermMemory); }
+    
     if (clr) { clr.addEventListener('click', () => { try { localStorage.removeItem('egoUserName'); } catch(_){ } applySavedNameToUI(); }); }
   });
 
