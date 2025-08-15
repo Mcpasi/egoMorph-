@@ -3276,6 +3276,23 @@
     const trimmed = ltm.slice(0, MAX);
     saveLTM(trimmed);
   }
+//15.08.2025
+  function exportLongTermMemory() {
+    const data = loadLTM();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'egomorph_ltm.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  function clearLongTermMemory() {
+    saveLTM([]);
+  }
+  window.exportLongTermMemory = exportLongTermMemory;
+  window.clearLongTermMemory = clearLongTermMemory;
+  
   // Expose a simple query to fetch top relevant LTM snippets
   window.queryLongTermMemory = function(query, k=3) {
     const ltm = loadLTM();
