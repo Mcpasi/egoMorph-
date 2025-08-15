@@ -23,6 +23,7 @@
        consistent behaviour across browsers.  Without this library
        the machine learning enhancements below would not function. -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+    <script src="vectorizeEmotion.js"></script>
   <style>
     body {
       background: #111;
@@ -2418,14 +2419,6 @@
       emotionVocab.forEach((w, i) => { emotionVocabIndex[w] = i; });
     })();
     // Convert a sentence into a binary vector over the emotion vocabulary.
-    function vectorizeEmotion(text) {
-      const vec = new Array(emotionVocab.length).fill(0);
-      text.toLowerCase().replace(/[.,!?]/g, ' ').split(/\s+/).forEach(tok => {
-        const idx = emotionVocabIndex[tok];
-        if (idx !== undefined) vec[idx] = 1;
-      });
-      return vec;
-    }
     // Build the training dataset for the emotion model.
     const emotionTrainX = [];
     const emotionTrainY = [];
