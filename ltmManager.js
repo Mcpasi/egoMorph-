@@ -43,7 +43,9 @@
       const txt = (e.text || '').toLowerCase();
       const score = (Array.isArray(e.topics) && e.topics.some(t => q.includes(String(t).toLowerCase()))) ? 2 : 0;
       const has = txt.includes(q) ? 1 : 0;
-      e._score = score + has + Math.log10(1 + Math.max(0, (Date.now() - (e.ts || 0)) / (1000 * 60 * 60 * 24)));
+      const ageDays = Math.max(0, (Date.now() - (e.ts || 0)) / (1000 * 60 * 60 * 24));
+      const recencyBoost = 1 / (1 + ageDays);
+      e._score = score + has + recencyBoost; 
     }
     ltm.sort((a, b) => (b._score || 0) - (a._score || 0));
     const top = ltm.slice(0, k);
