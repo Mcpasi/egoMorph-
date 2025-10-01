@@ -13,4 +13,4 @@
 ## [0.0.5.5 Alpha] - 2025-10-01
 
 ### 🔧 Verbesserungen
-- Der Einstellungsbereich hat ein neues Aussehen bekommen, Das aussehen ist jetzt viel übersichtlicher.
+- Der Einstellungsbereich wurde optisch überarbeitet und ist jetzt deutlich übersichtlicher.
