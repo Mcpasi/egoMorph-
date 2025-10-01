@@ -560,7 +560,19 @@
       <div class="settings-header">
         <h2 id="settingsTitle">Einstellungen</h2>
         <p>Passe EgoMorph mit wenigen Klicks an – von schnellen Aktionen bis zur persönlichen Ansprache.</p>
-    <!-- <div id="settingsPanel" style="display:none; margin-top:10px; background:#222; padding:10px; border:1px solid #444; width: min(320px, 90vw);">
+   
+         <details class="settings-section" open>
+        <summary>Schnellaktionen</summary>
+        <div class="settings-section-body">
+          <p class="settings-hint">Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.</p>
+          <div class="settings-actions">
+            <button id="clearConvBtn">Chatverlauf löschen</button>
+            <button id="toggleVoiceBtn">Stimme deaktivieren</button>
+            <button id="downloadModelBtn">Modell herunterladen</button>
+            <button id="ltmExportBtn">Speichern</button>
+            <button id="ltmClearBtn">Löschen</button>
+          </div>
+        <!-- <div id="settingsPanel" style="display:none; margin-top:10px; background:#222; padding:10px; border:1px solid #444; width: min(320px, 90vw);">
       <div style="display:flex; flex-wrap:wrap; gap:5px;">
         <button id="clearConvBtn">Chatverlauf löschen</button>
         <button id="toggleVoiceBtn">Stimme deaktivieren</button>
@@ -569,6 +581,7 @@
         <button id="ltmClearBtn">Löschen</button>
       -->
       </div>
+         </details>
       <!--<div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
         Label for the default emotion selector with id for translation 
         <label id="defaultEmotionLabel" for="defaultEmotionSelect" style="font-size:0.9em;">Standard&nbsp;Emotion:</label>
