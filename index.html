@@ -2938,8 +2938,11 @@
       // Populate the custom responses list once on load.
       updateCustomList();
       if (settingsToggle && settingsPanel) {
+        // Ensure the panel starts hidden even if CSS was overridden by the browser.
+        settingsPanel.style.display = 'none';
         settingsToggle.addEventListener('click', () => {
-          settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+          const isHidden = settingsPanel.style.display === 'none' || settingsPanel.style.display === '';
+          settingsPanel.style.display = isHidden ? 'flex' : 'none';
         });
       }
       if (clearBtn) {
