@@ -572,17 +572,110 @@
             <button id="ltmExportBtn">Speichern</button>
             <button id="ltmClearBtn">Löschen</button>
           </div>
-        <!-- <div id="settingsPanel" style="display:none; margin-top:10px; background:#222; padding:10px; border:1px solid #444; width: min(320px, 90vw);">
-      <div style="display:flex; flex-wrap:wrap; gap:5px;">
-        <button id="clearConvBtn">Chatverlauf löschen</button>
-        <button id="toggleVoiceBtn">Stimme deaktivieren</button>
-        <button id="downloadModelBtn">Modell herunterladen</button>
-        <button id="ltmExportBtn">Speichern</button>
-        <button id="ltmClearBtn">Löschen</button>
-      -->
+        
       </div>
          </details>
-      <!--<div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
+      
+        <details class="settings-section" open>
+        <summary>Standardwerte</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label id="defaultEmotionLabel" for="defaultEmotionSelect">Standard&nbsp;Emotion</label>
+            <div class="settings-field-controls">
+              <select id="defaultEmotionSelect">
+                <option value="">Wählen…</option>
+                <option value="freude">Freude</option>
+                <option value="wut">Wut</option>
+                <option value="traurigkeit">Traurigkeit</option>
+                <option value="angst">Angst</option>
+                <option value="vertrauen">Vertrauen</option>
+                <option value="ueberraschung">Überraschung</option>
+              </select>
+              <button id="setDefaultEmotionBtn">Festlegen</button>
+            </div>
+          </div>
+          <p class="settings-hint">Diese Auswahl bestimmt den Ausgangston der Unterhaltung.</p>
+        </div>
+      </details>
+
+      <details class="settings-section" open>
+        <summary>Persönliche Ansprache</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label for="userNameInput">Dein&nbsp;Name</label>
+            <input id="userNameInput" type="text" placeholder="z.&nbsp;B. Pascal">
+          </div>
+          <div class="settings-inline-actions">
+            <button id="saveUserNameBtn">Speichern</button>
+            <button id="clearUserNameBtn" title="Name entfernen">Löschen</button>
+            <span id="currentUserName" class="settings-note"></span>
+          </div>
+          <p class="settings-hint">EgoMorph spricht dich in Antworten mit diesem Namen an.</p>
+        </div>
+      </details>
+
+      <details id="customResponseSection" class="settings-section">
+        <summary>Eigene Antworten</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label id="customResponseLabel" for="customEmotionSelect">Emotion</label>
+            <select id="customEmotionSelect">
+              <option value="wut">Wut</option>
+              <option value="freude">Freude</option>
+              <option value="traurigkeit">Traurigkeit</option>
+              <option value="angst">Angst</option>
+              <option value="vertrauen">Vertrauen</option>
+              <option value="ueberraschung">Überraschung</option>
+            </select>
+          </div>
+          <input type="text" id="customResponseInput" placeholder="Eigene Antwort…">
+          <div class="settings-inline-actions">
+            <button id="addCustomResponseBtn">Antwort hinzufügen</button>
+          </div>
+          <p class="settings-description">Ergänze individuelle Reaktionen für bestimmte Emotionen.</p>
+          <div id="customResponseList" class="settings-description settings-preserve"></div>
+        </div>
+      </details>
+
+      <details id="appearanceSettings" class="settings-section">
+        <summary>Erscheinung</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label for="shapeSelect">Form</label>
+            <select id="shapeSelect">
+              <option value="circle">Kreis</option>
+              <option value="square">Viereck</option>
+              <option value="triangle">Dreieck</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="pupilColorSelect">Pupillenfarbe</label>
+            <select id="pupilColorSelect">
+              <option value="black">Schwarz</option>
+              <option value="blue">Blau</option>
+              <option value="yellow">Gelb</option>
+              <option value="green">Grün</option>
+            </select>
+          </div>
+          <div class="settings-inline-actions">
+            <button id="applyAppearanceBtn" onclick="applyAppearanceSettings()">Übernehmen</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary>Sprache</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label id="languageLabel" for="languageSelect">Sprache</label>
+            <select id="languageSelect">
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+      </details>
+        <!--<div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
         Label for the default emotion selector with id for translation 
         <label id="defaultEmotionLabel" for="defaultEmotionSelect" style="font-size:0.9em;">Standard&nbsp;Emotion:</label>
         <select id="defaultEmotionSelect">
