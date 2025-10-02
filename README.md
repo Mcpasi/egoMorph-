@@ -42,5 +42,5 @@ Wenn Sie den Code von **Egomorph** anpassen möchten, benötigen Sie einen Edito
 4. Laden Sie die **index.html** im Browser neu, um die Änderungen sofort zu testen.  
 
 ### Hinweis
-- Änderungen sind lokal – wenn Sie möchten, dass andere Ihre Anpassungen nutzen können, committen Sie die geänderten Dateien auf GitHub und erstellen ggf. einen **Pull Request**.  
+- Änderungen sind lokal - wenn Sie möchten, dass andere Ihre Anpassungen nutzen können, committen Sie die geänderten Dateien auf GitHub und erstellen ggf. einen **Pull Request**.  
 - EgoMorph speichert Daten lokal im Browser (`localStorage`). Änderungen am Code beeinflussen nicht automatisch bestehende gespeicherte Daten.  
