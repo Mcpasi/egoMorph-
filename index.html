@@ -558,12 +558,12 @@
    <div id="settingsPanel" role="region" aria-labelledby="settingsTitle">
       <div class="settings-header">
         <h2 id="settingsTitle">Einstellungen</h2>
-        <p>Passe EgoMorph mit wenigen Klicks an – von schnellen Aktionen bis zur persönlichen Ansprache.</p>
-   
-         <details class="settings-section" open>
-        <summary>Schnellaktionen</summary>
+        <p id="settingsIntro">Passe EgoMorph mit wenigen Klicks an – von schnellen Aktionen bis zur persönlichen Ansprache.</p>
+        <details class="settings-section" open>
+        
+        <summary id="settingsQuickSummary">Schnellaktionen</summary>
         <div class="settings-section-body">
-          <p class="settings-hint">Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.</p>
+          <p id="quickActionsHint" class="settings-hint">Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.</p>
           <div class="settings-actions">
             <button id="clearConvBtn">Chatverlauf löschen</button>
             <button id="toggleVoiceBtn">Stimme deaktivieren</button>
@@ -576,7 +576,7 @@
          </details>
       
         <details class="settings-section" open>
-        <summary>Standardwerte</summary>
+        <summary id="settingsDefaultSummary">Standardwerte</summary>
         <div class="settings-section-body">
           <div class="settings-field">
             <label id="defaultEmotionLabel" for="defaultEmotionSelect">Standard&nbsp;Emotion</label>
@@ -593,15 +593,15 @@
               <button id="setDefaultEmotionBtn">Festlegen</button>
             </div>
           </div>
-          <p class="settings-hint">Diese Auswahl bestimmt den Ausgangston der Unterhaltung.</p>
+          <p id="defaultEmotionHint" class="settings-hint">Diese Auswahl bestimmt den Ausgangston der Unterhaltung.</p>
         </div>
       </details>
 
       <details class="settings-section" open>
-        <summary>Persönliche Ansprache</summary>
+        <summary id="settingsPersonalSummary">Persönliche Ansprache</summary>
         <div class="settings-section-body">
           <div class="settings-field">
-            <label for="userNameInput">Dein&nbsp;Name</label>
+            <label id="userNameLabel" for="userNameInput">Dein&nbsp;Name</label>
             <input id="userNameInput" type="text" placeholder="z.&nbsp;B. Pascal">
           </div>
           <div class="settings-inline-actions">
@@ -609,12 +609,12 @@
             <button id="clearUserNameBtn" title="Name entfernen">Löschen</button>
             <span id="currentUserName" class="settings-note"></span>
           </div>
-          <p class="settings-hint">EgoMorph spricht dich in Antworten mit diesem Namen an.</p>
+          <p id="personalHint" class="settings-hint">EgoMorph spricht dich in Antworten mit diesem Namen an.</p>
         </div>
       </details>
 
       <details id="customResponseSection" class="settings-section">
-        <summary>Eigene Antworten</summary>
+        <summary id="customSummary">Eigene Antworten</summary>
         <div class="settings-section-body">
           <div class="settings-field">
             <label id="customResponseLabel" for="customEmotionSelect">Emotion</label>
@@ -631,16 +631,16 @@
           <div class="settings-inline-actions">
             <button id="addCustomResponseBtn">Antwort hinzufügen</button>
           </div>
-          <p class="settings-description">Ergänze individuelle Reaktionen für bestimmte Emotionen.</p>
+          <p id="customDescription" class="settings-description">Ergänze individuelle Reaktionen für bestimmte Emotionen.</p>
           <div id="customResponseList" class="settings-description settings-preserve"></div>
         </div>
       </details>
 
       <details id="appearanceSettings" class="settings-section">
-        <summary>Erscheinung</summary>
+        <summary id="appearanceSummary">Erscheinung</summary>
         <div class="settings-section-body">
           <div class="settings-field">
-            <label for="shapeSelect">Form</label>
+            <label id="shapeLabel" for="shapeSelect">Form</label>
             <select id="shapeSelect">
               <option value="circle">Kreis</option>
               <option value="square">Viereck</option>
@@ -648,7 +648,7 @@
             </select>
           </div>
           <div class="settings-field">
-            <label for="pupilColorSelect">Pupillenfarbe</label>
+            <label id="pupilLabel" for="pupilColorSelect">Pupillenfarbe</label>
             <select id="pupilColorSelect">
               <option value="black">Schwarz</option>
               <option value="blue">Blau</option>
@@ -663,7 +663,7 @@
       </details>
 
       <details class="settings-section">
-        <summary>Sprache</summary>
+        <summary id="languageSummary">Sprache</summary>
         <div class="settings-section-body">
           <div class="settings-field">
             <label id="languageLabel" for="languageSelect">Sprache</label>
@@ -1257,6 +1257,39 @@
         addCustomResponseBtn: 'Antwort hinzufügen',
         languageLabel: 'Sprache:',
         languageOptions: { de:'Deutsch', en:'English' },
+        settingsTitle: 'Einstellungen',
+        settingsIntro: 'Passe EgoMorph mit wenigen Klicks an – von schnellen Aktionen bis zur persönlichen Ansprache.',
+        quickActionsTitle: 'Schnellaktionen',
+        quickActionsHint: 'Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.',
+        ltmExportBtn: 'Speichern',
+        ltmClearBtn: 'Löschen',
+        defaultSectionTitle: 'Standardwerte',
+        defaultSectionHint: 'Diese Auswahl bestimmt den Ausgangston der Unterhaltung.',
+        personalSectionTitle: 'Persönliche Ansprache',
+        userNameLabel: 'Dein Name',
+        userNamePlaceholder: 'z. B. Pascal',
+        saveUserNameBtn: 'Speichern',
+        clearUserNameBtn: 'Löschen',
+        clearUserNameTitle: 'Name entfernen',
+        personalSectionHint: 'EgoMorph spricht dich in Antworten mit diesem Namen an.',
+        customSectionTitle: 'Eigene Antworten',
+        customSectionDescription: 'Ergänze individuelle Reaktionen für bestimmte Emotionen.',
+        appearanceSectionTitle: 'Erscheinung',
+        shapeLabel: 'Form',
+        shapeOptions: { circle: 'Kreis', square: 'Viereck', triangle: 'Dreieck' },
+        pupilLabel: 'Pupillenfarbe',
+        pupilOptions: { black: 'Schwarz', blue: 'Blau', yellow: 'Gelb', green: 'Grün' },
+        applyAppearanceBtn: 'Übernehmen',
+        languageSectionTitle: 'Sprache',
+        savedNameTemplate: '(gespeichert: {name})',
+        empathyHighPrefix: 'Ich verstehe dich. ',
+        lowTrustSuffix: ' Bist du sicher?',
+        emotionComments: {
+          freude: 'Du klingst fröhlich',
+          wut: 'Es klingt, als wärst du wütend',
+          traurigkeit: 'Ich spüre Traurigkeit in deinen Worten'
+        },
+        mentionsObject: 'Du erwähnst {object}',
         defaultEmotionOptions: {
           freude:'Freude',
           wut:'Wut',
@@ -1303,6 +1336,39 @@
         addCustomResponseBtn: 'Add response',
         languageLabel: 'Language:',
         languageOptions: { de:'German', en:'English' },
+        settingsTitle: 'Settings',
+        settingsIntro: 'Adjust EgoMorph in just a few clicks—from quick actions to personalised addressing.',
+        quickActionsTitle: 'Quick actions',
+        quickActionsHint: 'Control history, voice and stored data right here.',
+        ltmExportBtn: 'Save',
+        ltmClearBtn: 'Delete',
+        defaultSectionTitle: 'Defaults',
+        defaultSectionHint: 'This choice defines the initial tone of the conversation.',
+        personalSectionTitle: 'Personal address',
+        userNameLabel: 'Your name',
+        userNamePlaceholder: 'e.g. Pascal',
+        saveUserNameBtn: 'Save',
+        clearUserNameBtn: 'Remove',
+        clearUserNameTitle: 'Remove name',
+        personalSectionHint: 'EgoMorph will address you with this name in its replies.',
+        customSectionTitle: 'Custom responses',
+        customSectionDescription: 'Add individual reactions for specific emotions.',
+        appearanceSectionTitle: 'Appearance',
+        shapeLabel: 'Shape',
+        shapeOptions: { circle: 'Circle', square: 'Square', triangle: 'Triangle' },
+        pupilLabel: 'Pupil colour',
+        pupilOptions: { black: 'Black', blue: 'Blue', yellow: 'Yellow', green: 'Green' },
+        applyAppearanceBtn: 'Apply',
+        languageSectionTitle: 'Language',
+        savedNameTemplate: '(saved: {name})',
+        empathyHighPrefix: 'I understand you. ',
+        lowTrustSuffix: ' Are you sure?',
+        emotionComments: {
+          freude: 'You sound happy',
+          wut: 'It sounds like you are angry',
+          traurigkeit: 'I sense sadness in your words'
+        },
+        mentionsObject: 'You mention {object}',
         defaultEmotionOptions: {
           freude:'Joy',
           wut:'Anger',
@@ -1319,6 +1385,28 @@
         voiceDeactivate: 'Disable voice'
       }
     };
+    window.__egoTranslations = translations;
+
+    function formatSavedNameLabel(name) {
+      if (!name) return '';
+      const template = translations[currentLanguage] && translations[currentLanguage].savedNameTemplate;
+      if (!template) return name;
+      return template.replace('{name}', name);
+    }
+    window.formatSavedNameLabel = formatSavedNameLabel;
+
+    function renderSavedUserNameLabel() {
+      const outEl = document.getElementById('currentUserName');
+      if (!outEl) return;
+      let saved = '';
+      try {
+        saved = localStorage.getItem('egoUserName') || '';
+      } catch (err) {
+        saved = '';
+      }
+      outEl.textContent = saved ? formatSavedNameLabel(saved) : '';
+    }
+    window.renderSavedUserNameLabel = renderSavedUserNameLabel;
     // Extend translations with new keys for feedback system and language switching
     translations.de.correctEmotionPrompt = 'Bitte wähle die richtige Emotion:';
     translations.en.correctEmotionPrompt = 'Please select the correct emotion:';
@@ -1403,6 +1491,7 @@
       }
     })();
     // Persist feedback-related data to localStorage
+    window.__egoCurrentLanguage = currentLanguage;
     function savePersistentData() {
       try {
         localStorage.setItem('currentLanguage', currentLanguage);
@@ -1830,6 +1919,30 @@
         infoToggleEl.textContent = translations[currentLanguage].infoBtn;
       }
       // Clear chat, download model and default emotion buttons
+      const settingsTitleEl = document.getElementById('settingsTitle');
+      if (settingsTitleEl) {
+        settingsTitleEl.textContent = translations[currentLanguage].settingsTitle;
+      }
+      const settingsIntroEl = document.getElementById('settingsIntro');
+      if (settingsIntroEl) {
+        settingsIntroEl.textContent = translations[currentLanguage].settingsIntro;
+      }
+      const quickSummaryEl = document.getElementById('settingsQuickSummary');
+      if (quickSummaryEl) {
+        quickSummaryEl.textContent = translations[currentLanguage].quickActionsTitle;
+      }
+      const quickHintEl = document.getElementById('quickActionsHint');
+      if (quickHintEl) {
+        quickHintEl.textContent = translations[currentLanguage].quickActionsHint;
+      }
+      const ltmExportEl = document.getElementById('ltmExportBtn');
+      if (ltmExportEl) {
+        ltmExportEl.textContent = translations[currentLanguage].ltmExportBtn;
+      }
+      const ltmClearEl = document.getElementById('ltmClearBtn');
+      if (ltmClearEl) {
+        ltmClearEl.textContent = translations[currentLanguage].ltmClearBtn;
+    }
       const clearBtnEl = document.getElementById('clearConvBtn');
       if (clearBtnEl) {
         clearBtnEl.textContent = translations[currentLanguage].clearChatBtn;
@@ -1856,9 +1969,26 @@
       if (defaultLabelEl) {
         defaultLabelEl.textContent = translations[currentLanguage].defaultEmotionLabel;
       }
+
+      const defaultSummaryEl = document.getElementById('settingsDefaultSummary');
+      if (defaultSummaryEl) {
+        defaultSummaryEl.textContent = translations[currentLanguage].defaultSectionTitle;
+      }
+      const defaultHintEl = document.getElementById('defaultEmotionHint');
+      if (defaultHintEl) {
+        defaultHintEl.textContent = translations[currentLanguage].defaultSectionHint;
+      }
       const customLabelEl = document.getElementById('customResponseLabel');
       if (customLabelEl) {
         customLabelEl.textContent = translations[currentLanguage].customResponseLabel;
+      }
+      const customSummaryEl = document.getElementById('customSummary');
+      if (customSummaryEl) {
+        customSummaryEl.textContent = translations[currentLanguage].customSectionTitle;
+      }
+      const customDescriptionEl = document.getElementById('customDescription');
+      if (customDescriptionEl) {
+        customDescriptionEl.textContent = translations[currentLanguage].customSectionDescription;
       }
       // Placeholder for custom response input
       const customInputEl = document.getElementById('customResponseInput');
@@ -1875,6 +2005,10 @@
       if (langLabelEl) {
         langLabelEl.textContent = translations[currentLanguage].languageLabel;
       }
+      const languageSummaryEl = document.getElementById('languageSummary');
+      if (languageSummaryEl) {
+        languageSummaryEl.textContent = translations[currentLanguage].languageSectionTitle;
+    }
       // Update language select options
       const langSelectEl = document.getElementById('languageSelect');
       if (langSelectEl) {
@@ -1907,11 +2041,74 @@
           if (lbl) custSelect.options[i].textContent = lbl;
         }
       }
+      const personalSummaryEl = document.getElementById('settingsPersonalSummary');
+      if (personalSummaryEl) {
+        personalSummaryEl.textContent = translations[currentLanguage].personalSectionTitle;
+      }
+      const userNameLabelEl = document.getElementById('userNameLabel');
+      if (userNameLabelEl) {
+        userNameLabelEl.textContent = translations[currentLanguage].userNameLabel;
+      }
+      const userNameInputEl = document.getElementById('userNameInput');
+      if (userNameInputEl) {
+        userNameInputEl.placeholder = translations[currentLanguage].userNamePlaceholder;
+      }
+      const saveNameBtn = document.getElementById('saveUserNameBtn');
+      if (saveNameBtn) {
+        saveNameBtn.textContent = translations[currentLanguage].saveUserNameBtn;
+      }
+      const clearNameBtn = document.getElementById('clearUserNameBtn');
+      if (clearNameBtn) {
+        clearNameBtn.textContent = translations[currentLanguage].clearUserNameBtn;
+        clearNameBtn.title = translations[currentLanguage].clearUserNameTitle;
+      }
+      const personalHintEl = document.getElementById('personalHint');
+      if (personalHintEl) {
+        personalHintEl.textContent = translations[currentLanguage].personalSectionHint;
+      }
+      const appearanceSummaryEl = document.getElementById('appearanceSummary');
+      if (appearanceSummaryEl) {
+        appearanceSummaryEl.textContent = translations[currentLanguage].appearanceSectionTitle;
+      }
+      const shapeLabelEl = document.getElementById('shapeLabel');
+      if (shapeLabelEl) {
+        shapeLabelEl.textContent = translations[currentLanguage].shapeLabel;
+      }
+      const shapeSelect = document.getElementById('shapeSelect');
+      if (shapeSelect) {
+        const shapeTranslations = translations[currentLanguage].shapeOptions || {};
+        for (let i = 0; i < shapeSelect.options.length; i++) {
+          const val = shapeSelect.options[i].value;
+          if (shapeTranslations[val]) {
+            shapeSelect.options[i].textContent = shapeTranslations[val];
+          }
+        }
+      }
+      const pupilLabelEl = document.getElementById('pupilLabel');
+      if (pupilLabelEl) {
+        pupilLabelEl.textContent = translations[currentLanguage].pupilLabel;
+      }
+      const pupilSelect = document.getElementById('pupilColorSelect');
+      if (pupilSelect) {
+        const pupilTranslations = translations[currentLanguage].pupilOptions || {};
+        for (let i = 0; i < pupilSelect.options.length; i++) {
+          const val = pupilSelect.options[i].value;
+          if (pupilTranslations[val]) {
+            pupilSelect.options[i].textContent = pupilTranslations[val];
+          }
+        }
+      }
+      const applyAppearanceBtn = document.getElementById('applyAppearanceBtn');
+      if (applyAppearanceBtn) {
+        applyAppearanceBtn.textContent = translations[currentLanguage].applyAppearanceBtn;
+      }
       // Update information panel text
       const infoContentEl = document.getElementById('infoContent');
       if (infoContentEl) {
         infoContentEl.textContent = translations[currentLanguage].infoText;
       }
+      // Update saved name display with translated text
+      renderSavedUserNameLabel();
       // Refresh stats and error messages
       updateStatsDisplay();
       updateErrorStatsMessage();
@@ -1928,6 +2125,7 @@
     function changeLanguage(newLang) {
       if (!newLang || (newLang !== 'de' && newLang !== 'en')) return;
       currentLanguage = newLang;
+      window.__egoCurrentLanguage = currentLanguage;
       // Switch category responses to the corresponding language.  Original German
       // responses are stored in originalResponses and English versions in categoriesEnglish.
       for (const key in categories) {
@@ -1955,7 +2153,14 @@
       let newReply = reply;
       // High empathy adds an understanding preface.
       if (personality.empathyLevel > 0.7) {
-        newReply = 'Ich verstehe dich. ' + newReply;
+        const prefix = translations[currentLanguage] && translations[currentLanguage].empathyHighPrefix;
+        if (prefix) {
+          newReply = prefix + newReply;
+        } else if (currentLanguage === 'en') {
+          newReply = 'I understand you. ' + newReply;
+        } else {
+          newReply = 'Ich verstehe dich. ' + newReply;
+        }
       } else if (personality.empathyLevel < 0.3) {
         // Low empathy might make replies shorter and more curt.
         newReply = newReply.split('.').shift() + '.';
@@ -1975,7 +2180,14 @@
       }
       // Low trust makes the entity question the user's statement.
       if (personality.trust < 0.5) {
-        newReply = newReply + ' Bist du sicher?';
+        const suffix = translations[currentLanguage] && translations[currentLanguage].lowTrustSuffix;
+        if (suffix) {
+          newReply = newReply + suffix;
+        } else if (currentLanguage === 'en') {
+          newReply = newReply + ' Are you sure?';
+        } else {
+          newReply = newReply + ' Bist du sicher?';
+        }
       }
       return newReply;
     }
@@ -2005,11 +2217,7 @@
           }
         }
         // Map internal emotion identifiers to human-friendly descriptions.
-        const emotionComments = {
-          freude: 'Du klingst fröhlich',
-          wut: 'Es klingt, als wärst du wütend',
-          traurigkeit: 'Ich spüre Traurigkeit in deinen Worten'
-        };
+        const emotionComments = (translations[currentLanguage] && translations[currentLanguage].emotionComments) || {};
         const parts = [];
         if (dominant && emotionComments[dominant]) {
           parts.push(emotionComments[dominant]);
@@ -2019,7 +2227,13 @@
         if (svo && svo.object) {
           // Escape any HTML characters in the object to avoid injection.
           const obj = escapeHTML(svo.object);
-          parts.push('Du erwähnst ' + obj);
+          const mentionTemplate = translations[currentLanguage] && translations[currentLanguage].mentionsObject;
+          if (mentionTemplate) {
+            parts.push(mentionTemplate.replace('{object}', obj));
+          } else {
+            const fallback = currentLanguage === 'en' ? 'You mention ' : 'Du erwähnst ';
+            parts.push(fallback + obj);
+          }
         }
         if (parts.length > 0) {
           // Join the contextual comments with periods and append to the reply.
@@ -3276,12 +3490,24 @@
   }
   // Settings UI handlers for name save/load.
   function applySavedNameToUI() {
+    let n = '';
     try {
-      const n = localStorage.getItem('egoUserName') || '';
+      n = localStorage.getItem('egoUserName') || '';
+    } catch (_) {
+      n = '';
+    }
+    const input = document.getElementById('userNameInput');
+    if (input && n && !input.value) {
+      input.value = n;
+    }
+    if (typeof window.renderSavedUserNameLabel === 'function') {
+      window.renderSavedUserNameLabel();
+    } else {
       const outEl = document.getElementById('currentUserName');
       if (outEl) {
-        outEl.textContent = n ? '(gespeichert: ' + n + ')' : '';
+        outEl.textContent = n ? '(' + n + ')' : '';
       }
+  }
       const input = document.getElementById('userNameInput');
       if (input && n && !input.value) input.value = n;
     } catch (_) {}
