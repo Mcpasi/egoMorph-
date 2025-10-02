@@ -955,14 +955,33 @@
         emotionPointsDisplay.classList.remove('negative');
       }
     }
-    function adjustEmotionPoints(delta) {
-      emotionPoints += delta;
-      updateEmotionPointsDisplay();
+    function persistEmotionPoints() {
       try {
         localStorage.setItem(EMOTION_POINTS_KEY, String(emotionPoints));
       } catch (err) {
-        /* ignore storage errors */
+        // Access to localStorage can fail in private browsing modes.  In that case
+        // we silently ignore the error so the UI keeps working without persistence.
       }
+    }
+   function restoreEmotionPointsFromStorage() {
+      let stored = null;
+      try {
+        stored = localStorage.getItem(EMOTION_POINTS_KEY);
+      } catch (err) {
+        stored = null;
+      }
+      if (stored !== null) {
+        const parsed = parseInt(stored, 10);
+        if (!Number.isNaN(parsed)) {
+          emotionPoints = parsed;
+        }
+      }
+      updateEmotionPointsDisplay();
+    }
+    function adjustEmotionPoints(delta) {
+      emotionPoints += delta;
+      updateEmotionPointsDisplay();
+      persistEmotionPoints();
     }
     function spawnEmotionBubble(type, delta) {
       if (!bubbleLayer) return;
@@ -1028,19 +1047,7 @@
         conversation = storedConv;
         updateConversation();
       }
-     
-      try {
-        const storedPoints = localStorage.getItem(EMOTION_POINTS_KEY);
-        if (storedPoints !== null) {
-          const parsedPoints = parseInt(storedPoints, 10);
-          if (!Number.isNaN(parsedPoints)) {
-            emotionPoints = parsedPoints;
-          }
-        }
-      } catch (err) {
-        emotionPoints = 0;
-      }
-      // Restore voice enabled setting (default true).  The stored value
+     // Restore voice enabled setting (default true).  The stored value
       // controls whether EgoMorph speaks responses via the synthesiser.
       // Do not hide the microphone button based on this flag so that
       // speech input remains available even when voice output is disabled.
@@ -1128,7 +1135,20 @@
       memory = [];
       conversation = [];
     }
-    updateEmotionPointsDisplay();
+    restoreEmotionPointsFromStorage();
+    window.addEventListener('storage', (event) => {
+      if (event.key !== EMOTION_POINTS_KEY) return;
+      const value = event.newValue;
+      if (typeof value !== 'string') {
+        emotionPoints = 0;
+        updateEmotionPointsDisplay();
+        return;
+      }
+      const parsed = parseInt(value, 10);
+      if (Number.isNaN(parsed)) return;
+      emotionPoints = parsed;
+      updateEmotionPointsDisplay();
+    });
     function clamp(val) {
       return Math.max(0, Math.min(100, val));
     }
