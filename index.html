@@ -50,13 +50,54 @@
       background: radial-gradient(circle at center, #66f, #339);
       transition: all 0.4s ease;
       box-shadow: 0 0 30px #66f;
-      overflow: hidden;
+      overflow: visible;
       /* Use a CSS variable to control scale from JavaScript. This allows us to
          combine scaling with other animations (e.g. shaking) without
          overwriting the transform property. */
       --scale: 1;
       transform: scale(var(--scale));
     }
+    #bubbleLayer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .emotion-bubble {
+      position: absolute;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      transform: scale(0.6) translateY(12px);
+      animation: bubbleFloat 3.2s ease-out forwards;
+      user-select: none;
+      z-index: 5;
+    }
+    .emotion-bubble.friendly {
+      background: radial-gradient(circle at 30% 30%, #b8ffcc, #2da64a);
+      color: #053a12;
+    }
+    .emotion-bubble.angry {
+      background: radial-gradient(circle at 30% 30%, #ffb3b3, #a62323);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .emotion-bubble.removing {
+      opacity: 0 !important;
+      transform: scale(0.4) translateY(-10px) !important;
+      animation: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      }
     /*
       Evil mode styling.  When the entity has the `evil` class, its
       appearance changes dramatically to signal that EgoMorph is in a bad
@@ -127,6 +168,12 @@
     #entity.shake {
       animation: shake 0.4s linear infinite;
     }
+   @keyframes bubbleFloat {
+      0% { opacity: 0; transform: scale(0.6) translateY(12px); }
+      20% { opacity: 1; transform: scale(1) translateY(0); }
+      80% { opacity: 1; transform: scale(1.05) translateY(-12px); }
+      100% { opacity: 0; transform: scale(1.1) translateY(-24px); }
+   }
     .eye {
       position: absolute;
       top: 30%;
@@ -246,7 +293,17 @@
       font-size: 0.8em;
       color: #aaa;
     }
-
+        #emotionPointsDisplay {
+      margin-top: 8px;
+      font-size: 0.85em;
+      color: #8ff0a4;
+      font-weight: 600;
+      text-align: center;
+      transition: color 0.2s ease;
+    }
+    #emotionPointsDisplay.negative {
+      color: #ff9999;
+    }
     #settingsPanel {
       display: none;
       margin-top: 12px;
@@ -534,6 +591,7 @@
     <div class="eye" id="eye-right"></div>
     <div id="mouth"></div>
   </div>
+  <div id="bubbleLayer" aria-hidden="true"></div>
   <div id="inputSection">
     <input type="text" id="inputText" placeholder="Sag etwas...">
     <!-- Assign an id to the send button so its label can be translated dynamically -->
@@ -542,6 +600,7 @@
     <div id="response"></div>
     <div id="memory"></div>
     <!-- Feedback section for user to indicate whether classification was correct -->
+    <div id="emotionPointsDisplay">Emotionspunkte: 0</div>
     <div id="feedbackContainer" style="margin-top:10px;"></div>
     <!-- Statistics display for prediction correctness -->
     <div id="stats" style="margin-top:5px; font-size:0.8em; color:#aaa;"></div>
@@ -778,6 +837,10 @@
     const memoryBox = document.getElementById("memory");
     const speechButton = document.getElementById("speechButton");
 
+   const bubbleLayer = document.getElementById("bubbleLayer");
+    const emotionPointsDisplay = document.getElementById("emotionPointsDisplay");
+    let emotionPointsLabel = 'Emotionspunkte';
+    
     // === Add pupils for dynamic eye tracking ===
     // Create small pupil elements inside each eye.  These will be moved
     // relative to the user’s pointer to simulate gaze.  We attach the
@@ -858,7 +921,8 @@
     memory.topics = [];
     // Conversation history: array of { user, reply } objects.
     let conversation = [];
-
+    const EMOTION_POINTS_KEY = 'egoEmotionPoints';
+    let emotionPoints = 0;
     // Escape HTML to prevent injection in conversation history.
     function escapeHTML(str) {
       return str
@@ -881,6 +945,68 @@
       responseBox.scrollTop = responseBox.scrollHeight;
     }
     // Restore persisted memory and conversation.
+    function updateEmotionPointsDisplay() {
+      if (!emotionPointsDisplay) return;
+      const label = emotionPointsLabel || 'Emotionspunkte';
+      emotionPointsDisplay.textContent = `${label}: ${emotionPoints}`;
+      if (emotionPoints < 0) {
+        emotionPointsDisplay.classList.add('negative');
+      } else {
+        emotionPointsDisplay.classList.remove('negative');
+      }
+    }
+    function adjustEmotionPoints(delta) {
+      emotionPoints += delta;
+      updateEmotionPointsDisplay();
+      try {
+        localStorage.setItem(EMOTION_POINTS_KEY, String(emotionPoints));
+      } catch (err) {
+        /* ignore storage errors */
+      }
+    }
+    function spawnEmotionBubble(type, delta) {
+      if (!bubbleLayer) return;
+      const bubble = document.createElement('div');
+      bubble.className = `emotion-bubble ${type}`;
+      bubble.textContent = delta > 0 ? `+${delta}` : `${delta}`;
+      const left = 15 + Math.random() * 70;
+      const top = 25 + Math.random() * 50;
+      bubble.style.left = `${left}%`;
+      bubble.style.top = `${top}%`;
+      let collected = false;
+      let timeoutId;
+      const removeBubble = () => {
+        if (!bubble.isConnected) return;
+        bubble.classList.add('removing');
+        if (timeoutId) clearTimeout(timeoutId);
+        setTimeout(() => {
+          if (bubble.parentNode) {
+            bubble.parentNode.removeChild(bubble);
+          }
+        }, 180);
+      };
+      bubble.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (collected) return;
+        collected = true;
+        adjustEmotionPoints(delta);
+        removeBubble();
+      });
+      bubbleLayer.appendChild(bubble);
+      timeoutId = setTimeout(() => {
+        if (!collected) {
+          removeBubble();
+        }
+      }, 3200);
+    }
+    function triggerEmotionBubble(category, angerDominant) {
+      if (!bubbleLayer) return;
+      if (category === 'joy' || category === 'trust' || category === 'greeting') {
+        spawnEmotionBubble('friendly', 5);
+      } else if (category === 'anger' || angerDominant) {
+        spawnEmotionBubble('angry', -2);
+      }
+    }
     try {
       const storedMemory = JSON.parse(localStorage.getItem('egoMemory') || '[]');
       if (Array.isArray(storedMemory)) memory = storedMemory;
@@ -901,6 +1027,18 @@
       if (Array.isArray(storedConv)) {
         conversation = storedConv;
         updateConversation();
+      }
+     
+      try {
+        const storedPoints = localStorage.getItem(EMOTION_POINTS_KEY);
+        if (storedPoints !== null) {
+          const parsedPoints = parseInt(storedPoints, 10);
+          if (!Number.isNaN(parsedPoints)) {
+            emotionPoints = parsedPoints;
+          }
+        }
+      } catch (err) {
+        emotionPoints = 0;
       }
       // Restore voice enabled setting (default true).  The stored value
       // controls whether EgoMorph speaks responses via the synthesiser.
@@ -990,6 +1128,7 @@
       memory = [];
       conversation = [];
     }
+    updateEmotionPointsDisplay();
     function clamp(val) {
       return Math.max(0, Math.min(100, val));
     }
@@ -1245,6 +1384,7 @@
         statsCorrect: 'richtig',
         statsWrong: 'falsch',
         learnedExamples: 'Gelernte Beispiele: ',
+        emotionPointsLabel: 'Emotionspunkte',
         settingsBtn: '⚙️ Einstellungen',
         infoBtn: 'ℹ️ Info',
         clearChatBtn: 'Chatverlauf löschen',
@@ -1324,6 +1464,7 @@
         statsCorrect: 'correct',
         statsWrong: 'wrong',
         learnedExamples: 'Learned examples: ',
+        emotionPointsLabel: 'Emotion points',
         settingsBtn: '⚙️ Settings',
         infoBtn: 'ℹ️ Info',
         clearChatBtn: 'Delete chat history',
@@ -2112,6 +2253,14 @@
       // Refresh stats and error messages
       updateStatsDisplay();
       updateErrorStatsMessage();
+      if (translations[currentLanguage] && translations[currentLanguage].emotionPointsLabel) {
+        emotionPointsLabel = translations[currentLanguage].emotionPointsLabel;
+      } else if (currentLanguage === 'en') {
+        emotionPointsLabel = 'Emotion points';
+      } else {
+        emotionPointsLabel = 'Emotionspunkte';
+      }
+      updateEmotionPointsDisplay();
       // Re-render conversation history so the user label updates
       updateConversation();
     }
@@ -2899,6 +3048,7 @@
       // return to zero before evil mode is cleared.  Using the
       // predicted category rather than the dominant emotion ensures
       // explicit expressions of anger are what drive the state change.
+     const angerDominant = emotion.wut > emotion.freude + 5 && emotion.wut > emotion.vertrauen + 5;
       {
         /*
          * Determine whether anger is dominating in the current emotion state.
@@ -2913,7 +3063,7 @@
          * the evil mode is triggered; it remains active until the streak
          * drops back to zero.
          */
-        const angerDominant = emotion.wut > emotion.freude + 5 && emotion.wut > emotion.vertrauen + 5;
+        
         if (category === 'anger' || angerDominant) {
           angerStreak = Math.min(angerStreak + 1, 5);
         } else if (category === 'joy' || category === 'trust') {
@@ -2929,6 +3079,7 @@
           entity.classList.remove('evil');
         }
       }
+     triggerEmotionBubble(category, angerDominant);
       // SVO detection for potential future logic (logged only).
       const svo = detectSVO(text);
       if (svo) { console.log('SVO detected', svo); }
