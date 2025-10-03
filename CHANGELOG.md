@@ -27,7 +27,7 @@
 
 ## [0.0.6.0 Alpha] - 2025-10-03
 
-## ⭐ Neue Features
+### ⭐ Neue Features
 
 Emotionspunkte-System 🎮
 - Positive Nachrichten erzeugen grüne Blasen     Punkte sammeln.
