@@ -41,7 +41,7 @@
     const q = (query || '').toLowerCase();
     for (const e of ltm) {
       const txt = (e.text || '').toLowerCase();
-      const score = (Array.isArray(e.topics) && e.topics.some(t => q.includes(String(t).toLowerCase()))) ? 2 : 0;
+      const score = (Array.isArray(e.topics) && e.topics.some(t => String(t).toLowerCase().includes(q))) ? 2 : 0;
       const has = txt.includes(q) ? 1 : 0;
       const ageDays = Math.max(0, (Date.now() - (e.ts || 0)) / (1000 * 60 * 60 * 24));
       const recencyBoost = 1 / (1 + ageDays);
