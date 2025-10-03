@@ -47,3 +47,10 @@ Wenn Sie den Code von **Egomorph** anpassen möchten, benötigen Sie einen Edito
 ### Hinweis
 - Änderungen sind lokal - wenn Sie möchten, dass andere Ihre Anpassungen nutzen können, committen Sie die geänderten Dateien auf GitHub und erstellen ggf. einen **Pull Request**.  
 - EgoMorph speichert Daten lokal im Browser (`localStorage`). Änderungen am Code beeinflussen nicht automatisch bestehende gespeicherte Daten.  
+
+** Release-Strategie
+Bis jetzt habe ich fast jede kleine Änderung als Release hochgeladen. Ab sofort gibt es nur noch Meilenstein-Releases (z. B. 0.0.7, 0).
+Das heißt:
+Stable-Releases → getestet, dokumentiert, in größeren Abständen.
+Dev-Versionen → im Repo sichtbar, aber nicht immer als Release hochgeladen.
+So bleibt Egomorph stabil für Nutzer und flexibel für Entwickler.
