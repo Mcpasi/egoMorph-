@@ -66,4 +66,18 @@ describe('queryLongTermMemory', () => {
     expect(result[0]).toBe('frische erinnerung');
     expect(result[1]).toBe('alte erinnerung');
   });
+test('matches topics when the query is a partial match', () => {
+    const now = 1_700_000_000_000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+
+    store.egoLongTermMemory = JSON.stringify([
+      { text: 'spreche ueber astronomie', ts: now, topics: ['astronomie'], hits: 0 }
+    ]);
+
+    require('../ltmManager');
+
+    const result = global.queryLongTermMemory('astro', 1);
+
+    expect(result).toEqual(['spreche ueber astronomie']);
+  });
 });
