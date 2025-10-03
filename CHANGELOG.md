@@ -25,7 +25,7 @@
 
 - Aktualisierte Persönlichkeitsanpassungen und intelligenter Antwortkontext zum Abrufen übersetzungsbewusster Zeichenfolgen mit sprachspezifischen Fallbacks.
 
-## [0.0.6.0 Alpha] - 2025-XX-XX
+## [0.0.6.0 Alpha] - 2025-10-03
 
 ## ⭐ Neue Features
 
