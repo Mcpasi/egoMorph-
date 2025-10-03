@@ -696,9 +696,9 @@
       <div class="settings-header">
         <h2 id="settingsTitle">Einstellungen</h2>
         <p id="settingsIntro">Passe EgoMorph mit wenigen Klicks an – von schnellen Aktionen bis zur persönlichen Ansprache.</p>
-        <details class="settings-section" open>
-        
-        <summary id="settingsQuickSummary">Schnellaktionen</summary>
+        </div>
+       <details class="settings-section" open>
+      <summary id="settingsQuickSummary">Schnellaktionen</summary>
         <div class="settings-section-body">
           <p id="quickActionsHint" class="settings-hint">Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.</p>
           <div class="settings-actions">
@@ -710,9 +710,9 @@
           </div>
         
       </div>
-         </details>
-      
-        <details class="settings-section" open>
+      </details>
+
+      <details class="settings-section" open>
         <summary id="settingsDefaultSummary">Standardwerte</summary>
         <div class="settings-section-body">
           <div class="settings-field">
@@ -811,84 +811,7 @@
           </div>
         </div>
       </details>
-        <!--<div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
-        Label for the default emotion selector with id for translation 
-        <label id="defaultEmotionLabel" for="defaultEmotionSelect" style="font-size:0.9em;">Standard&nbsp;Emotion:</label>
-        <select id="defaultEmotionSelect">
-          <option value="">Wählen…</option>
-          <option value="freude">Freude</option>
-          <option value="wut">Wut</option>
-          <option value="traurigkeit">Traurigkeit</option>
-          <option value="angst">Angst</option>
-          <option value="vertrauen">Vertrauen</option>
-          <option value="ueberraschung">Überraschung</option>
-        </select>
-        <button id="setDefaultEmotionBtn">
         
-    Festlegen</button>
- User name setting for personalized addressing 
-        <div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-          <label for="userNameInput" style="font-size:0.9em;">Dein&nbsp;Name:</label>
-          <input id="userNameInput" type="text" placeholder="z.&nbsp;B. Pascal" style="flex:1; min-width:120px;">
-          <button id="saveUserNameBtn">Speichern</button><button id="clearUserNameBtn" title="Name entfernen">Löschen</button>
-          <span id="currentUserName" style="font-size:0.85em; opacity:0.8;"></span>
-        </div>-->
-
-     <!-- </div>
-       Sektion for users to define their own responses for each emotion.  This
-           allows personalization of EgoMorph by extending the built‑in
-           response lists.  The user can select an emotion, enter a new
-           response, and click to add it.  Custom responses are stored
-           locally and loaded on page startup. 
-      <div id="customResponseSection" style="margin-top:10px;">
-        Label for custom response selection with id for translation 
-        <label id="customResponseLabel" for="customEmotionSelect" style="font-size:0.9em;">Eigene&nbsp;Antwort für&nbsp;Emotion:</label>
-        <select id="customEmotionSelect" style="margin-top:5px;">
-          <option value="wut">Wut</option>
-          <option value="freude">Freude</option>
-          <option value="traurigkeit">Traurigkeit</option>
-          <option value="angst">Angst</option>
-          <option value="vertrauen">Vertrauen</option>
-          <option value="ueberraschung">Überraschung</option>
-        </select>
-        <input type="text" id="customResponseInput" placeholder="Eigene Antwort…" style="margin-top:5px; width:100%; padding:5px; background:#222; color:#eee; border:1px solid #555;">
-        <button id="addCustomResponseBtn" style="margin-top:5px;">Antwort hinzufügen</button>
-        Display a list of the user’s custom responses for the currently
-             selected emotion so they know what has been added. 
-        <div id="customResponseList" style="margin-top:5px; font-size:0.8em; color:#aaa; white-space:pre-wrap;"></div>
-      </div>
-       Appearance settings allow the user to customise the EgoMorph shape
-           and the colour of its pupils.  These controls are placed here
-           instead of the index script so that the logic can be loaded
-           separately via a dedicated JavaScript file.  The options are
-           persisted across sessions using localStorage via the
-           ego_settings.js script. 
-      <div id="appearanceSettings" style="margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
-        <label for="shapeSelect" style="font-size:0.9em;">Form:</label>
-        <select id="shapeSelect" style="margin-right:5px;">
-          <option value="circle">Kreis</option>
-          <option value="square">Viereck</option>
-          <option value="triangle">Dreieck</option>
-        </select>
-        <label for="pupilColorSelect" style="font-size:0.9em;">Pupillenfarbe:</label>
-        <select id="pupilColorSelect">
-          <option value="black">Schwarz</option>
-          <option value="blue">Blau</option>
-          <option value="yellow">Gelb</option>
-          <option value="green">Grün</option>
-        </select>
-        Button to apply and persist the selected appearance options.  Without
-             clicking this button, changes may not be obvious to the user. 
-        <button id="applyAppearanceBtn" style="margin-top:5px;" onclick="applyAppearanceSettings()">Übernehmen</button>
-      </div>
-    Language selection allows switching between German and English UI 
-    <div style="margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
-      <label id="languageLabel" for="languageSelect" style="font-size:0.9em;">Sprache:</label>
-      <select id="languageSelect">
-        <option value="de">Deutsch</option>
-        <option value="en">English</option>
-      </select>
-    </div>-->
     </div>
     <!-- Information panel toggled by the info button.  Initially hidden;
          contains placeholder text about EgoMorph’s origins and purpose. -->
@@ -3566,6 +3489,7 @@
     // Prepare installation button for PWA
     const installBtn = document.createElement('button');
     installBtn.id = 'installBtn';
+    installBtn.style.display = 'none';
     if (typeof translations !== 'undefined' && translations[currentLanguage] && translations[currentLanguage].installBtn) {
       installBtn.textContent = translations[currentLanguage].installBtn;
     } else {
