@@ -33,3 +33,13 @@ Emotionspunkte-System 🎮
 - Positive Nachrichten erzeugen grüne Blasen     Punkte sammeln.
 
 - Negative Nachrichten erzeugen rote Blasen Punkte verlieren.
+
+## [0.0.6.1 Alpha] - 2025-10-04
+
+### 🔧 Verbesserungen
+
+- Besseres Erinnern: Das System erkennt Themen jetzt auch dann, wenn nur Teile eines Wortes oder Satzes übereinstimmen. So werden passende Inhalte leichter wiedergefunden.
+
+- Stabilere Emotionserkennung: Fehlerhafte Eingaben oder komische Zeichen bringen das System nicht mehr durcheinander. Emotionen werden zuverlässiger erkannt, ohne Abstürze.
+
+- Mehr Sicherheit für die Zukunft: Zusätzliche Tests stellen sicher, dass diese Verbesserungen auch in kommenden Versionen erhalten bleiben.
