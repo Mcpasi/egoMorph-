@@ -24,3 +24,12 @@
 - Die Sprachaktualisierungsroutine und die gemeinsam genutzten Helfer wurden erweitert, um den neuen Einstellungstext, die Schaltflächen für den Langzeitspeicher und die Anzeige gespeicherter Namen mithilfe persistenter Daten zu lokalisieren.
 
 - Aktualisierte Persönlichkeitsanpassungen und intelligenter Antwortkontext zum Abrufen übersetzungsbewusster Zeichenfolgen mit sprachspezifischen Fallbacks.
+
+## [0.0.6.0 Alpha] - 2025-XX-XX
+
+## ⭐ Neue Features
+
+Emotionspunkte-System 🎮
+- Positive Nachrichten erzeugen grüne Blasen     Punkte sammeln.
+
+- Negative Nachrichten erzeugen rote Blasen Punkte verlieren.
