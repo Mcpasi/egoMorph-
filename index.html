@@ -929,6 +929,9 @@
     // Attach a separate array for topics on the memory object.  Arrays
     // in JavaScript are objects, so adding a custom property is safe.
     memory.topics = [];
+   // Remember which topic or memory snippet was referenced last so we avoid repeating it.
+    let lastTopicReference = '';
+    let lastMemoryReference = '';
     // Conversation history: array of { user, reply } objects.
     let conversation = [];
     const EMOTION_POINTS_KEY = 'egoEmotionPoints';
@@ -1467,6 +1470,23 @@
           wut: 'Es klingt, als wärst du wütend',
           traurigkeit: 'Ich spüre Traurigkeit in deinen Worten'
         },
+        emotionSummarySingle: 'Ich nehme vor allem {emotion} wahr.',
+        emotionSummaryPair: 'Ich nehme {primary} und auch {secondary} wahr.',
+        emotionLabels: {
+          freude: 'Freude',
+          wut: 'Wut',
+          traurigkeit: 'Traurigkeit'
+        },
+        questionIntros: {
+          why: 'Du fragst nach dem Warum – lass uns das gemeinsam beleuchten.',
+          how: 'Ich überlege mit dir, wie das gelingen kann.',
+          what: 'Ich schaue, was dir dabei helfen könnte.',
+          when: 'Wir können auch über das richtige Timing sprechen.',
+          where: 'Lass uns den passenden Rahmen finden.',
+          general: 'Ich denke laut mit dir, damit wir eine Antwort finden.'
+        },
+        memoryRecallTemplate: 'Ich erinnere mich daran, dass du einmal „{memory}“ erwähnt hast.',
+        topicRecallTemplate: 'Das knüpft an {topic} an, was du vorhin erwähnt hast.',
         mentionsObject: 'Du erwähnst {object}',
         defaultEmotionOptions: {
           freude:'Freude',
@@ -1547,6 +1567,23 @@
           wut: 'It sounds like you are angry',
           traurigkeit: 'I sense sadness in your words'
         },
+        emotionSummarySingle: 'I mainly sense {emotion}.',
+        emotionSummaryPair: 'I sense {primary} and also {secondary}.',
+        emotionLabels: {
+          freude: 'Joy',
+          wut: 'Anger',
+          traurigkeit: 'Sadness'
+        },
+        questionIntros: {
+          why: 'You are wondering why – let me think it through with you.',
+          how: 'Let us explore how that could work.',
+          what: 'I am looking at what could support you.',
+          when: 'We can talk about the right timing as well.',
+          where: 'Let us find the right place or context together.',
+          general: 'I will think along with you so we can figure it out.'
+        },
+        memoryRecallTemplate: 'I remember you once mentioned “{memory}”.',
+        topicRecallTemplate: 'That connects to {topic} you mentioned earlier.',
         mentionsObject: 'You mention {object}',
         defaultEmotionOptions: {
           freude:'Joy',
@@ -2379,7 +2416,112 @@
       return newReply;
     }
 
-    /**
+   function detectQuestionType(text) {
+      const lower = (text || '').toLowerCase();
+      if (!lower) return null;
+      const sanitized = lower.replace(/#[\w-]+/g, ' ');
+      const hasQuestionMark = sanitized.includes('?');
+      if (/\b(warum|weshalb|wieso|why)\b/.test(sanitized)) return 'why';
+      if (/\b(wie|how|womit|wodurch)\b/.test(sanitized)) return 'how';
+      if (/\b(was|what|welche?r?)\b/.test(sanitized)) return 'what';
+      if (/\b(wann|when)\b/.test(sanitized)) return 'when';
+      if (/\b(wo|where)\b/.test(sanitized)) return 'where';
+      if (hasQuestionMark) return 'general';
+      return null;
+    }
+
+    function getQuestionIntro(type) {
+      if (!type) return '';
+      const map = translations[currentLanguage] && translations[currentLanguage].questionIntros;
+      if (map && map[type]) return map[type];
+      if (map && map.general) return map.general;
+      if (currentLanguage === 'en') {
+        return 'Let me think that through with you.';
+      }
+      return 'Lass mich mit dir darüber nachdenken.';
+    }
+
+    function buildEmotionSummary(emotionResults) {
+      if (!emotionResults) return '';
+      const entries = Object.entries(emotionResults)
+        .filter(([_, val]) => typeof val === 'number' && val >= 0.1);
+      if (!entries.length) return '';
+      entries.sort((a, b) => b[1] - a[1]);
+      const meaningful = entries.slice(0, 2);
+      const labels = (translations[currentLanguage] && translations[currentLanguage].emotionLabels) || {};
+      const formatEntry = ([key, val]) => {
+        const label = labels[key] || key;
+        const safeLabel = escapeHTML(label);
+        return safeLabel + ' (' + Math.round(val * 100) + '%)';
+      };
+      const formatted = meaningful.map(formatEntry);
+      if (formatted.length === 0) return '';
+      if (formatted.length === 1) {
+        const template = translations[currentLanguage] && translations[currentLanguage].emotionSummarySingle;
+        if (template) return template.replace('{emotion}', formatted[0]);
+        if (currentLanguage === 'en') {
+          return 'I sense ' + formatted[0] + '.';
+        }
+        return 'Ich nehme ' + formatted[0] + ' wahr.';
+      }
+      const template = translations[currentLanguage] && translations[currentLanguage].emotionSummaryPair;
+      if (template) {
+        return template.replace('{primary}', formatted[0]).replace('{secondary}', formatted[1]);
+      }
+      if (currentLanguage === 'en') {
+        return 'I sense ' + formatted[0] + ' and ' + formatted[1] + '.';
+      }
+      return 'Ich nehme ' + formatted[0] + ' und ' + formatted[1] + ' wahr.';
+    }
+
+    function buildTopicRecallComment(text) {
+      if (!Array.isArray(memory.topics) || memory.topics.length === 0) return '';
+      const lower = (text || '').toLowerCase();
+      const topics = memory.topics.slice().reverse();
+      let match = null;
+      for (const topic of topics) {
+        if (topic && lower.includes(topic)) {
+          match = topic;
+          break;
+        }
+      }
+      if (!match || match === lastTopicReference) return '';
+      lastTopicReference = match;
+      const display = match.charAt(0).toUpperCase() + match.slice(1);
+      const safeTopic = escapeHTML(display);
+      const template = translations[currentLanguage] && translations[currentLanguage].topicRecallTemplate;
+      if (template) return template.replace('{topic}', safeTopic);
+      if (currentLanguage === 'en') {
+        return 'That reminds me of ' + safeTopic + ' from earlier.';
+      }
+      return 'Das erinnert mich an ' + safeTopic + ' von vorhin.';
+    }
+
+    function buildMemoryRecallComment(text) {
+      if (typeof window.queryLongTermMemory !== 'function') return '';
+      const raw = (text || '').trim();
+      if (!raw) return '';
+      const query = raw.replace(/#[\w-]+/g, '').trim() || raw;
+      let matches = [];
+      try {
+        matches = window.queryLongTermMemory(query, 1);
+      } catch (err) {
+        matches = [];
+      }
+      if (!Array.isArray(matches) || matches.length === 0) return '';
+      const snippet = (matches[0] || '').trim();
+      if (!snippet || snippet === lastMemoryReference) return '';
+      lastMemoryReference = snippet;
+      const safeSnippet = escapeHTML(snippet);
+      const template = translations[currentLanguage] && translations[currentLanguage].memoryRecallTemplate;
+      if (template) return template.replace('{memory}', safeSnippet);
+      if (currentLanguage === 'en') {
+        return 'I remember you said “' + safeSnippet + '” before.';
+      }
+      return 'Ich erinnere mich, dass du „' + safeSnippet + '“ gesagt hast.';
+              }
+        
+      /**
      * Generate a smarter reply by incorporating the predicted emotion and SVO
      * of the user's input.  Adds context‑sensitive comments about the user's
      * mood and the object they mention.
