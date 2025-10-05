@@ -2557,24 +2557,37 @@
           parts.push(cleaned);
         };
         if (dominant && emotionComments[dominant]) {
-          
+          addPart(emotionComments[dominant]);
         }
-        // Use SVO detection to reference the object mentioned by the user.
+        const emotionSummary = buildEmotionSummary(emotionResults);
+        if (emotionSummary) {
+          addPart(emotionSummary);
+        }
+        const questionIntro = getQuestionIntro(detectQuestionType(text));
+        if (questionIntro) {
+          addPart(questionIntro);
+        }
+        const topicComment = buildTopicRecallComment(text);
+        if (topicComment) {
+          addPart(topicComment);
+        }
+        const memoryComment = buildMemoryRecallComment(text);
+        if (memoryComment) {
+          addPart(memoryComment);
+        }
         const svo = detectSVO(text);
         if (svo && svo.object) {
-          // Escape any HTML characters in the object to avoid injection.
           const obj = escapeHTML(svo.object);
           const mentionTemplate = translations[currentLanguage] && translations[currentLanguage].mentionsObject;
           if (mentionTemplate) {
-            parts.push(mentionTemplate.replace('{object}', obj));
+            addPart(mentionTemplate.replace('{object}', obj));
           } else {
-            const fallback = currentLanguage === 'en' ? 'You mention ' : 'Du erwähnst ';
-            parts.push(fallback + obj);
+             const fallback = currentLanguage === 'en' ? 'You mention ' + obj : 'Du erwähnst ' + obj;
+             addPart(fallback);
           }
         }
         if (parts.length > 0) {
-          // Join the contextual comments with periods and append to the reply.
-          return reply + ' ' + parts.join('. ') + '.';
+          return reply + ' ' + parts.join(' ');
         }
         return reply;
       } catch (err) {
