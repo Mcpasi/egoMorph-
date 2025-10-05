@@ -82,6 +82,20 @@ describe('queryLongTermMemory', () => {
     expect(result).toEqual(['spreche ueber astronomie']);
   });
 
+ test('handles non-string queries and topic strings gracefully', () => {
+    const now = 1_700_000_000_000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+
+    store.egoLongTermMemory = JSON.stringify([
+      { text: 'zahlung mit rechnung', ts: now, topics: 'rechnung', hits: 0 }
+    ]);
+
+    require('../ltmManager');
+
+    let result;
+    expect(() => { result = global.queryLongTermMemory(123, 1); }).not.toThrow();
+    expect(result).toEqual(['zahlung mit rechnung']);
+  });
   test('recovers gracefully from corrupted long-term memory storage', () => {
     store.egoLongTermMemory = 'null';
 
