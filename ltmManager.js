@@ -45,20 +45,31 @@
     saveLTM([]);
   }
 
+  function normaliseTopics(topics) {
+    if (Array.isArray(topics)) return topics;
+    if (topics == null) return [];
+    return [topics];
+  }
   function queryLongTermMemory(query, k = 3) {
     const ltm = loadLTM();
-    const q = (query || '').toLowerCase();
+    const q = String(query == null ? '' : query).toLowerCase();
     for (const e of ltm) {
-      const txt = (e.text || '').toLowerCase();
-      const score = (Array.isArray(e.topics) && e.topics.some(t => String(t).toLowerCase().includes(q))) ? 2 : 0;
+      const txt = String(e.text == null ? '' : e.text).toLowerCase();
+      const topicMatch = normaliseTopics(e.topics).some(t => String(t).toLowerCase().includes(q));
       const has = txt.includes(q) ? 1 : 0;
       const ageDays = Math.max(0, (Date.now() - (e.ts || 0)) / (1000 * 60 * 60 * 24));
       const recencyBoost = 1 / (1 + ageDays);
-      e._score = score + has + recencyBoost; 
+      e._score = score + has + recencyBoost;
     }
     ltm.sort((a, b) => (b._score || 0) - (a._score || 0));
     const top = ltm.slice(0, k);
-    for (const e of top) e.hits = (e.hits || 0) + 1;
+    for (const e of top) {
+      e.hits = (e.hits || 0) + 1;
+      delete e._score;
+    }
+    for (const e of ltm) {
+      if (e._score != null) delete e._score;
+    }
     saveLTM(ltm);
     return top.map(e => e.text);
   }
