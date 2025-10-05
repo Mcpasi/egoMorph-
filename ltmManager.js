@@ -3,10 +3,19 @@
   const LTM_KEY = 'egoLongTermMemory';
 
   function loadLTM() {
-    try { return JSON.parse(localStorage.getItem(LTM_KEY) || '[]'); } catch (e) { return []; }
+    try {
+      const raw = localStorage.getItem(LTM_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(entry => entry && typeof entry === 'object');
+    } catch (e) {
+      return [];
+    }
   }
 
   function saveLTM(arr) {
+    if (!Array.isArray(arr)) return;
     try { localStorage.setItem(LTM_KEY, JSON.stringify(arr)); } catch (e) {}
   }
 
