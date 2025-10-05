@@ -59,7 +59,9 @@
       const has = txt.includes(q) ? 1 : 0;
       const ageDays = Math.max(0, (Date.now() - (e.ts || 0)) / (1000 * 60 * 60 * 24));
       const recencyBoost = 1 / (1 + ageDays);
-      e._score = score + has + recencyBoost;
+      const hitScore = Math.log10((Math.max(0, e.hits || 0)) + 1);
+      const matchScore = has + (topicMatch ? 1 : 0);
+      e._score = matchScore + hitScore + recencyBoost;
     }
     ltm.sort((a, b) => (b._score || 0) - (a._score || 0));
     const top = ltm.slice(0, k);
