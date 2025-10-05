@@ -66,7 +66,8 @@ describe('queryLongTermMemory', () => {
     expect(result[0]).toBe('frische erinnerung');
     expect(result[1]).toBe('alte erinnerung');
   });
-test('matches topics when the query is a partial match', () => {
+
+  test('matches topics when the query is a partial match', () => {
     const now = 1_700_000_000_000;
     jest.spyOn(Date, 'now').mockReturnValue(now);
 
@@ -79,5 +80,19 @@ test('matches topics when the query is a partial match', () => {
     const result = global.queryLongTermMemory('astro', 1);
 
     expect(result).toEqual(['spreche ueber astronomie']);
+  });
+
+  test('recovers gracefully from corrupted long-term memory storage', () => {
+    store.egoLongTermMemory = 'null';
+
+    require('../ltmManager');
+
+    expect(() => {
+      global.localStorage.setItem('egoMemory', JSON.stringify(['neue erinnerung']));
+    }).not.toThrow();
+
+    const parsed = JSON.parse(store.egoLongTermMemory);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed[0].text).toBe('neue erinnerung');
   });
 });
