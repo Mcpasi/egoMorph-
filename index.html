@@ -2545,11 +2545,19 @@
             }
           }
         }
-        // Map internal emotion identifiers to human-friendly descriptions.
         const emotionComments = (translations[currentLanguage] && translations[currentLanguage].emotionComments) || {};
         const parts = [];
+        const addPart = (segment) => {
+          if (!segment) return;
+          let cleaned = segment.trim();
+          if (!cleaned) return;
+          if (!/[.!?…]$/.test(cleaned)) {
+            cleaned += '.';
+          }
+          parts.push(cleaned);
+        };
         if (dominant && emotionComments[dominant]) {
-          parts.push(emotionComments[dominant]);
+          
         }
         // Use SVO detection to reference the object mentioned by the user.
         const svo = detectSVO(text);
