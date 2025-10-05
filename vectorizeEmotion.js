@@ -7,7 +7,6 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(root){
   function vectorizeEmotion(text, vocab, vocabIndex) {
     const useRootVocabulary = !Array.isArray(vocab);
-    const index = vocabIndex || root.emotionVocabIndex || {};
     const vocabulary = useRootVocabulary ? (root.emotionVocab || []) : vocab;
 
     let index = (vocabIndex && typeof vocabIndex === 'object') ? vocabIndex : null;
