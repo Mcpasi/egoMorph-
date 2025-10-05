@@ -14,7 +14,13 @@ describe('vectorizeEmotion', () => {
     const vec = vectorizeEmotion('Unbekanntes Wort', vocab, vocabIndex);
     expect(vec).toEqual([0, 0, 0, 0]);
   });
-test('returns zero vector for empty or non-string input', () => {
+test('builds an index when only a vocabulary is provided', () => {
+    const customVocab = ['eins', 'zwei'];
+    const vec = vectorizeEmotion('zwei drei eins', customVocab);
+    expect(vec).toEqual([1, 1]);
+  });
+
+  test('returns zero vector for empty or non-string input', () => {
     expect(() => vectorizeEmotion(null, vocab, vocabIndex)).not.toThrow();
     expect(vectorizeEmotion(null, vocab, vocabIndex)).toEqual([0, 0, 0, 0]);
     expect(vectorizeEmotion('', vocab, vocabIndex)).toEqual([0, 0, 0, 0]);
