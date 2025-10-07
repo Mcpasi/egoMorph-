@@ -19,12 +19,22 @@
     try { localStorage.setItem(LTM_KEY, JSON.stringify(arr)); } catch (e) {}
   }
 
+  function normaliseTimestamp(ts) {
+    if (typeof ts === 'number' && Number.isFinite(ts)) return ts;
+    return 0;
+  }
   function addLongTermMemory(entry) {
     if (!entry || !entry.text) return;
     const now = Date.now();
     const ltm = loadLTM();
     ltm.push({ text: String(entry.text).slice(0, 280), topics: entry.topics || [], ts: now, hits: 0 });
-    ltm.sort((a, b) => (b.hits || 0) - (a.hits || 0) || (b.ts - a.ts));
+    ltm.sort((a, b) => {
+      const hitDelta = (b.hits || 0) - (a.hits || 0);
+      if (hitDelta !== 0) return hitDelta;
+      const tsA = normaliseTimestamp(a.ts);
+      const tsB = normaliseTimestamp(b.ts);
+      return tsB - tsA;
+    });
     const MAX = 200;
     const trimmed = ltm.slice(0, MAX);
     saveLTM(trimmed);
@@ -52,7 +62,7 @@
   }
   function queryLongTermMemory(query, k = 3) {
     const ltm = loadLTM();
-    const q = String(query == null ? '' : query).toLowerCase();
+    const q = String(query == null ? '' : query).trim().toLowerCase();
     for (const e of ltm) {
       const txt = String(e.text == null ? '' : e.text).toLowerCase();
       const topicMatch = normaliseTopics(e.topics).some(t => String(t).toLowerCase().includes(q));
