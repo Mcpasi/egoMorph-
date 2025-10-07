@@ -142,6 +142,13 @@
   // Build the vocabulary for emotion classification.
   let emotionVocab = [];
   let emotionVocabIndex = {};
+  const globalTarget = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+
+  function exposeVocabulary() {
+    if (!globalTarget) return;
+    globalTarget.emotionVocab = emotionVocab;
+    globalTarget.emotionVocabIndex = emotionVocabIndex;
+  }
   (function buildEmotionVocab() {
     const set = new Set();
     for (const cls in emotionTrainingPhrases) {
@@ -154,6 +161,7 @@
     emotionVocab = Array.from(set);
     emotionVocabIndex = {};
     emotionVocab.forEach((w, i) => { emotionVocabIndex[w] = i; });
+    exposeVocabulary();
   })();
 
   // Convert a sentence into a binary vector over the emotion vocabulary.
