@@ -1,6 +1,6 @@
 describe('emotionModel global vocabulary exposure', () => {
   let originalConsole;
-let fakePred;
+  let fakePred;
 
   function flushPromises() {
     return new Promise(resolve => setImmediate(resolve));
@@ -52,7 +52,7 @@ let fakePred;
     expect(firstWord).toBeDefined();
     expect(global.emotionVocabIndex).toHaveProperty(firstWord);
   });
-test('disposes tensors created during training and prediction', async () => {
+    test('disposes tensors created during training and prediction', async () => {
     const xsTensor = { dispose: jest.fn() };
     const ysTensor = { dispose: jest.fn() };
     const inputTensor = { dispose: jest.fn() };
@@ -71,9 +71,10 @@ test('disposes tensors created during training and prediction', async () => {
 
     fakePred.dispose.mockClear();
 
-    await global.predictEmotionDistribution('Test text');
+    const distribution = await global.predictEmotionDistribution('Test text');
 
     expect(inputTensor.dispose).toHaveBeenCalledTimes(1);
     expect(fakePred.dispose).toHaveBeenCalledTimes(1);
-});
+    expect(distribution).toEqual({ freude: 0.4, wut: 0.3, traurigkeit: 0.3 });
+  });
 });
