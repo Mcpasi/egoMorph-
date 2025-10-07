@@ -82,7 +82,22 @@ describe('queryLongTermMemory', () => {
     expect(result).toEqual(['spreche ueber astronomie']);
   });
 
- test('handles non-string queries and topic strings gracefully', () => {
+ test('ignores surrounding whitespace when matching queries', () => {
+    const now = 1_700_000_000_000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+
+    store.egoLongTermMemory = JSON.stringify([
+      { text: 'diskussion ueber physik', ts: now, topics: ['wissenschaft'], hits: 0 }
+    ]);
+
+    require('../ltmManager');
+
+    const result = global.queryLongTermMemory('  physik  ', 1);
+
+    expect(result).toEqual(['diskussion ueber physik']);
+  });
+
+  test('handles non-string queries and topic strings gracefully', () => {
     const now = 1_700_000_000_000;
     jest.spyOn(Date, 'now').mockReturnValue(now);
 
@@ -108,5 +123,22 @@ describe('queryLongTermMemory', () => {
     const parsed = JSON.parse(store.egoLongTermMemory);
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed[0].text).toBe('neue erinnerung');
+  });
+
+test('sorts new entries ahead of legacy ones without timestamps', () => {
+    store.egoLongTermMemory = JSON.stringify([
+      { text: 'alte notiz', hits: 0 }
+    ]);
+
+    const now = 1_700_000_100_000;
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+
+    require('../ltmManager');
+
+    global.localStorage.setItem('egoMemory', JSON.stringify(['frische notiz']));
+
+    const parsed = JSON.parse(store.egoLongTermMemory);
+    expect(parsed[0].text).toBe('frische notiz');
+    expect(parsed[1].text).toBe('alte notiz');
   });
 });
