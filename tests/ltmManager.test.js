@@ -125,7 +125,18 @@ describe('queryLongTermMemory', () => {
     expect(parsed[0].text).toBe('neue erinnerung');
   });
 
-test('sorts new entries ahead of legacy ones without timestamps', () => {
+test('upgrades legacy string entries into structured objects', () => {
+    store.egoLongTermMemory = JSON.stringify(['alte notiz ueber katzen']);
+
+    require('../ltmManager');
+
+    const result = global.queryLongTermMemory('katzen', 1);
+    expect(result).toEqual(['alte notiz ueber katzen']);
+
+    const parsed = JSON.parse(store.egoLongTermMemory);
+    expect(parsed[0]).toMatchObject({ text: 'alte notiz ueber katzen', hits: 1, topics: [] });
+  });
+  test('sorts new entries ahead of legacy ones without timestamps', () => {
     store.egoLongTermMemory = JSON.stringify([
       { text: 'alte notiz', hits: 0 }
     ]);
