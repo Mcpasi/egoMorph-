@@ -238,13 +238,9 @@
     const vec = vectorizeEmotion(text);
     const input = tf.tensor2d([vec]);
     let pred;
-    const arr = await pred.data();
     try {
-    const result = {};
-      pred = emotionModel.predict(input);
-    for (let i = 0; i < emotionClasses.length; i++) {
-      const arr = await pred.data();
-      result[emotionClasses[i]] = arr[i];
+     pred = emotionModel.predict(input);
+     const arr = await pred.data();
       const result = {};
       for (let i = 0; i < emotionClasses.length; i++) {
         result[emotionClasses[i]] = arr[i];
