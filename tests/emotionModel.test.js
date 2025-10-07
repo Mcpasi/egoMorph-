@@ -1,6 +1,10 @@
 describe('emotionModel global vocabulary exposure', () => {
   let originalConsole;
+let fakePred;
 
+  function flushPromises() {
+    return new Promise(resolve => setImmediate(resolve));
+  }
   beforeEach(() => {
     jest.resetModules();
     originalConsole = console;
@@ -12,8 +16,7 @@ describe('emotionModel global vocabulary exposure', () => {
       setItem: (key, value) => { store[key] = String(value); },
       removeItem: key => { delete store[key]; }
     };
-    const fakeTensor = { dispose: jest.fn() };
-    const fakePred = { data: jest.fn().mockResolvedValue(new Float32Array([0.4, 0.3, 0.3])), dispose: jest.fn() };
+    fakePred = { data: jest.fn().mockResolvedValue(new Float32Array([0.4, 0.3, 0.3])), dispose: jest.fn() };
     const fakeModel = {
       add: jest.fn(),
       compile: jest.fn(),
@@ -25,7 +28,7 @@ describe('emotionModel global vocabulary exposure', () => {
       loadLayersModel: jest.fn().mockRejectedValue(new Error('no model')),
       sequential: jest.fn(() => fakeModel),
       layers: { dense: jest.fn(() => ({})) },
-      tensor2d: jest.fn(() => fakeTensor)
+      tensor2d: jest.fn(() => ({ dispose: jest.fn() }))
     };
   });
 
@@ -36,6 +39,8 @@ describe('emotionModel global vocabulary exposure', () => {
     delete global.window;
     delete global.emotionVocab;
     delete global.emotionVocabIndex;
+    delete global.predictEmotionDistribution;
+    delete global.createAndTrainEmotionModel;
   });
 
   test('exposes vocabulary and index on the global object', () => {
@@ -47,4 +52,28 @@ describe('emotionModel global vocabulary exposure', () => {
     expect(firstWord).toBeDefined();
     expect(global.emotionVocabIndex).toHaveProperty(firstWord);
   });
+test('disposes tensors created during training and prediction', async () => {
+    const xsTensor = { dispose: jest.fn() };
+    const ysTensor = { dispose: jest.fn() };
+    const inputTensor = { dispose: jest.fn() };
+
+    global.tf.tensor2d
+      .mockReturnValueOnce(xsTensor)
+      .mockReturnValueOnce(ysTensor)
+      .mockReturnValue(inputTensor);
+
+    require('../emotionModel');
+
+    await flushPromises();
+
+    expect(xsTensor.dispose).toHaveBeenCalledTimes(1);
+    expect(ysTensor.dispose).toHaveBeenCalledTimes(1);
+
+    fakePred.dispose.mockClear();
+
+    await global.predictEmotionDistribution('Test text');
+
+    expect(inputTensor.dispose).toHaveBeenCalledTimes(1);
+    expect(fakePred.dispose).toHaveBeenCalledTimes(1);
+});
 });
