@@ -207,7 +207,12 @@
     model.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: [emotionVocab.length] }));
     model.add(tf.layers.dense({ units: emotionClasses.length, activation: 'softmax' }));
     model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
-    await model.fit(xs, ys, { epochs: 40, batchSize: 8, shuffle: true });
+    try {
+      await model.fit(xs, ys, { epochs: 40, batchSize: 8, shuffle: true });
+    } finally {
+      if (typeof xs.dispose === 'function') xs.dispose();
+      if (typeof ys.dispose === 'function') ys.dispose();
+    }
     emotionModel = model;
     window.emotionModel = emotionModel;
     try {
@@ -232,13 +237,24 @@
     }
     const vec = vectorizeEmotion(text);
     const input = tf.tensor2d([vec]);
-    const pred = emotionModel.predict(input);
+    let pred;
     const arr = await pred.data();
+    try {
     const result = {};
+      pred = emotionModel.predict(input);
     for (let i = 0; i < emotionClasses.length; i++) {
+      const arr = await pred.data();
       result[emotionClasses[i]] = arr[i];
+      const result = {};
+      for (let i = 0; i < emotionClasses.length; i++) {
+        result[emotionClasses[i]] = arr[i];
+      }
+      return result;
+    } finally {
+      if (pred && typeof pred.dispose === 'function') pred.dispose();
+      if (typeof input.dispose === 'function') input.dispose();
     }
-    return result;
+    
   }
 
   window.predictEmotionDistribution = predictEmotionDistribution;
