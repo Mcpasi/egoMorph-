@@ -2,13 +2,34 @@
   // Lightweight long-term memory manager
   const LTM_KEY = 'egoLongTermMemory';
 
+ function sanitiseEntry(entry) {
+    if (!entry) return null;
+    if (typeof entry === 'string') {
+      return { text: String(entry).slice(0, 280), topics: [], ts: 0, hits: 0 };
+    }
+    if (typeof entry !== 'object') return null;
+    const text = entry.text == null ? '' : String(entry.text).slice(0, 280);
+    const hits = typeof entry.hits === 'number' && Number.isFinite(entry.hits) ? entry.hits : 0;
+    return {
+      ...entry,
+      text,
+      topics: normaliseTopics(entry.topics),
+      ts: normaliseTimestamp(entry.ts),
+      hits
+    };
+ }
   function loadLTM() {
     try {
       const raw = localStorage.getItem(LTM_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
-      return parsed.filter(entry => entry && typeof entry === 'object');
+      const normalised = [];
+      for (const entry of parsed) {
+        const sanitised = sanitiseEntry(entry);
+        if (sanitised) normalised.push(sanitised);
+      }
+      return normalised;
     } catch (e) {
       return [];
     }
