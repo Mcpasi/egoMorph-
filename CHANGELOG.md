@@ -47,3 +47,11 @@ Emotion Point System 🎮
 - More security for the future: Additional testing ensures that these improvements will be retained in future releases.
 
 **This is where the Apache 2.0 license starts**
+
+## [0.0.6.7 Alpha] - 2025-10-08
+
+### 🔧 Enhancements
+
+- Minor stability improvements. 
+
+- Small improvements to the emotion model 
