@@ -46,4 +46,4 @@ Emotion Point System 🎮
 
 - More security for the future: Additional testing ensures that these improvements will be retained in future releases.
 
-**This is where the Apache 2.0 license starts **
+**This is where the Apache 2.0 license starts**
