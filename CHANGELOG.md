@@ -45,3 +45,5 @@ Emotion Point System 🎮
 - More stable emotion recognition: Incorrect inputs or strange characters no longer confuse the system. Emotions are recognized more reliably, without crashes.
 
 - More security for the future: Additional testing ensures that these improvements will be retained in future releases.
+
+**This is where the Apache 2.0 license starts **
