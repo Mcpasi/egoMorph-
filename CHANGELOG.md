@@ -55,3 +55,14 @@ Emotion Point System 🎮
 - Minor stability improvements. 
 
 - Small improvements to the emotion model 
+
+## [0.0.7.0 Alpha] - 2026-02-02
+
+### ⭐ New Features
+
+- A loading screen has been added.
+- A thinking mode has been added. You can now observe Egomorph thinking.
+
+### 🐞Fixes
+
+- A critical bug has been fixed that caused parts of the code to not execute.
