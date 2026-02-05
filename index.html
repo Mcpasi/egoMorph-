@@ -1,6 +1,6 @@
 <!-- Copyright 2025 - 2026 Pascal(Mcpasi)
     Lizens:MIT
-    Version: 0.0.7.0 Alpha - 2026-01-03
+    Version: 0.0.7.2 Alpha(Test-Build) - 2026-01-03
     Github; https://github.com/Mcpasi/egoMorph-/tree/main
     Lizenz: Apache License 2.0
 
@@ -12,10 +12,6 @@ A copy of the license can be found at:
 
 Unless required by law or agreed in writing,
 the software is distributed under the "AS IS" license, without warranties or conditions.
-
-Note on transparency:
-Parts of the code were created with the support of GPT-5 Codex (AI Code Generator)
-and then checked and adjusted by me.
 
 -->
 
@@ -271,6 +267,7 @@ and then checked and adjusted by me.
             <select id="languageSelect">
               <option value="de">Deutsch</option>
               <option value="en">English</option>
+              <option value="fr">French</option>
             </select>
           </div>
         </div>
@@ -876,8 +873,8 @@ and then checked and adjusted by me.
         confirm: 'Bestätigen',
         thankYouLearned: 'Danke! Ich habe gelernt.',
         feedbackPrompt: 'Was habe ich falsch verstanden?',
-        errorConfusion: (c, p) => `Ich verwechsle oft ${c} mit ${p}. Danke, dass du mir hilfst!`,
-        improvedMessage: 'Diesen Satz habe ich beim ersten Mal falsch eingeschätzt. Jetzt erkenne ich ihn besser!',
+        errorConfusion: (c, p) => `Ich verwechsele oft${c} mit ${p}. Vielen Dank für deine hilfe`,
+        improvedMessage: 'I misjudged this sentence the first time. Now I recognize it better!',
         emotionalFeedback: 'Ich merke, dass ich dich oft missverstehe… bitte gib mir noch eine Chance.',
         statsNoData: 'Vorhersage-Statistik: keine Daten',
         statsPrefix: 'Vorhersage-Statistik: ',
@@ -1058,7 +1055,106 @@ and then checked and adjusted by me.
         alternativeBtn: 'This answer would have been better.',
         voiceActivate: 'Enable voice',
         voiceDeactivate: 'Disable voice'
-      }
+      },
+      fr: {
+        placeholder: 'Dire quelque chose',
+        sendButton: 'Envoyer',
+        speechTitle: 'Demarrer la saisie vocale',
+        yes: 'Oui',
+        no: 'Non',
+        correctRecognition: 'A-t-on correctement idenifife cela?',
+        selectCorrectEmotion: 'Veuillez selectionner l,emotion correcte',
+        confirm: 'Confirmer',
+        thankYouLearned: 'Merci. jai appris',
+        feedbackPrompt: 'Quest-ce que jai mal compris',
+        errorConfusion: (c, p) => `je confont souvent ${c} avec ${p}. merci de mavoir aide`,
+        improvedMessage: 'jai mal interprete cette phrase la premiere fois, je la comprends mieux maintenant!',
+        emotionalFeedback: 'je me rends compte que je vous comprends souvent mal... Donnez-moi une autre chance sil vois plait',
+        statsNoData: 'Statistiques de prediction: no donnees',
+        statsPrefix: 'Statistiques de Prediction: ',
+        statsCorrect: 'correcte',
+        statsWrong: 'Faux',
+        learnedExamples: 'Exemples appris: ',
+        emotionPointsLabel: 'points demitions',
+        settingsBtn: '⚙️ Parametres',
+        infoBtn: 'ℹ️ Info',
+        clearChatBtn: 'Supprimer Ihistorique des discussions',
+        downloadModelBtn: 'Telecharger la modele',
+        setDefaultEmotionBtn: 'Ensemble',
+        defaultEmotionLabel: 'Emotion par defaut',
+        choose: 'Selectionner...',
+        customResponseLabel: 'Reponse personnalisee a lemotion:',
+        customResponsePlaceholder: 'Reponse personnalisee...',
+        addCustomResponseBtn: 'Ajouter une reponse',
+        languageLabel: 'Langue:',
+        languageOptions: { de: 'Allemand', en: 'Anglaise' },
+        settingsTitle: 'Parametres',
+        settingsIntro: 'Modifiez Egomorph en quelques clics seulement: de l action a la personnalisation',
+        quickActionsTitle: 'Action rapide',
+        quickActionsHint: 'Controlez lhistorique la voix et les donees enregistrees ici meme',
+        ltmExportBtn: 'Sauvegarder',
+        ltmClearBtn: 'supprimer',
+        defaultSectionTitle: 'default',
+        defaultSectionHint: 'Ce choix definit le ton initial de la conversation.',
+        personalSectionTitle: 'Adresse personnelle',
+        userNameLabel: 'votre mom',
+        userNamePlaceholder: 'Nom de dein',
+        saveUserNameBtn: 'Sauvegarder',
+        clearUserNameBtn: 'retirer',
+        clearUserNameTitle: 'Supprimer le nom',
+        personalSectionHint: 'Egomorph vous apellera par ce nom dans ses reponses',
+        customSectionTitle: 'Reponses personnalisees',
+        customSectionDescription: 'Ajouter des reactions individuelles pour des emotions specifiques',
+        appearanceSectionTitle: 'Apparence',
+        shapeLabel: 'forme',
+        shapeOptions: { circle: 'Circle', square: 'Carre', triangle: 'Triangle' },
+        pupilLabel: 'Couleur de la pupille',
+        pupilOptions: { black: 'noir', blue: 'Bleue', yellow: 'Jaune', green: 'Verte' },
+        applyAppearanceBtn: 'Appliquer',
+        languageSectionTitle: 'Langue',
+        savedNameTemplate: '(sauve: {name})',
+        empathyHighPrefix: 'Je te comprends. ',
+        lowTrustSuffix: ' Es-tu sur',
+  
+        emotionComments: {
+           freude: 'tu as lair heureux',
+           wut: 'On dirait que tu es en colere',
+           traurigkeit: 'Je percois de la tristesse dans tes paraoles',
+       },
+           emotionSummarySingle: 'Je sens principalement {emotion}.',
+           emotionSummaryPair: 'Je le sens {primary} et aussi {secondary}.',
+           emotionLabels: {
+           freude: 'Joie',
+           wut: 'Colere',
+           traurigkeit: 'Tristesse'
+  },
+       questionIntros: {
+           why: 'Vous vous demandez pourquoi, Laissez-moi y reflechir avec vous',
+           how: 'Voyons comment cela pourrait',
+           what: 'Je cherche ce qui pourrait vous aider',
+           when: 'Nous pouvons egalement parler du moment opportun',
+           where: 'Trouvons ensemble le lieu ou le context approprie.',
+           general: 'Je vais reflechir avec toi pour quon puisse trouver la solutiion'
+  },
+       memoryRecallTemplate: 'Je me souviens que vous avez mentionne une fois“{memory}”.',
+       topicRecallTemplate: 'Cela se connecte a {topic} Vous avez mentionne plus tot.',
+       mentionsObject: 'vous mentionnez {object}',
+       defaultEmotionOptions: {
+       freude: 'Joie',
+       wut: 'Colere',
+       traurigkeit: 'Tristesse',
+       angst: 'Peur',
+       vertrauen: 'Confiance',
+       ueberraschung: 'Surprendre'
+  },
+       infoText: 'EgoMorph est votre compagnon personnel; Egomorph est capable de reconnaitre les emotions et dadapter son apparence en consequence',
+       memoryPrefix: 'Je me souviens:',
+      youPrefix: 'Toi:',
+      alternativeBtn: 'Cette reponse aurait ete meilleure',
+      voiceActivate: 'Activer la voix',
+      voiceDeactivate: 'Desactiver la voix'
+}
+
     };
     window.__egoTranslations = translations;
 
@@ -1085,22 +1181,30 @@ and then checked and adjusted by me.
     // Extend translations with new keys for feedback system and language switching
     translations.de.correctEmotionPrompt = 'Bitte wähle die richtige Emotion:';
     translations.en.correctEmotionPrompt = 'Please select the correct emotion:';
+    translations.fr,correctEmotionPrompt = 'Veuillez selectinner iemotion correct:';
     translations.de.commentPrompt = 'Was habe ich falsch verstanden?';
     translations.en.commentPrompt = 'What did I misunderstand?';
+    translations.fr.commentPrompt = 'Quest-ce que jai mal compris?';
     translations.de.confirmFeedback = 'Bestätigen';
     translations.en.confirmFeedback = 'Confirm';
+    translations.fr.confirmFeedback = 'Comfirmer';
     translations.de.trainingAcknowledgement = 'Danke! Ich habe gelernt.';
-    translations.en.trainingAcknowledgement = 'Thanks! I have learned.';
+    translations.en.trainingAcknowledgement = 'Thanks!';
+    translations.fr.trainingAcknowledgement = 'Merci!';
     translations.de.errorConfuse = 'Ich verwechsle oft {correct} mit {predicted}. Danke, dass du mir hilfst!';
     translations.en.errorConfuse = 'I often confuse {correct} with {predicted}. Thank you for helping me!';
+    translations.fr.errorConfuse = 'Je confonds souvent {correct} avec {predicted}. Merci de mavoir aide';
     translations.de.learningProgress = 'Diesen Satz habe ich beim ersten Mal falsch eingeschätzt. Jetzt erkenne ich ihn besser!';
     translations.en.learningProgress = 'I misclassified this sentence the first time. Now I recognise it better!';
+    translations.fr.learningProgress = 'Jai mal classe cette phrase la premiere foi';
     translations.de.suggestionsIntro = 'Alternative Vorschläge:';
     translations.en.suggestionsIntro = 'Alternative suggestions:';
+    translations.fr.suggestionsIntro = 'Suggestions alternatives:';
 
     // Add installation button labels for the PWA installer
     translations.de.installBtn = 'Installieren';
     translations.en.installBtn = 'Install';
+    translations.fr.installBtn = 'Installer';
     // Names of the categories shown to the user for each language
     const categoryDisplayNames = {
       de: {
@@ -1126,6 +1230,18 @@ and then checked and adjusted by me.
         surprise:'Surprise',
         trust:'Trust',
         default:'Neutral'
+      },
+      fr: {
+        dislike:'aversion',
+        greeting:'Salutation',
+        farewell:'Adieu',
+        anger:'colere',
+        sadness:'Tristesse',
+        joy:'joie',
+        fear:'peur',
+        surprise:'surprendre',
+        trust:'confiance',
+        default:'neutre'
       }
     };
     // Objects for tracking feedback and personalised learning
@@ -1146,7 +1262,7 @@ and then checked and adjusted by me.
       try {
         // current language preference
         const storedLang = localStorage.getItem('currentLanguage');
-        if (storedLang && (storedLang === 'de' || storedLang === 'en')) {
+        if (storedLang && (storedLang === 'de' || storedLang === 'en' || storedLang === 'fr' )) {
           currentLanguage = storedLang;
         }
         const misStr = localStorage.getItem('misclassificationCounts');
@@ -1203,11 +1319,22 @@ and then checked and adjusted by me.
       anger: { responses: ['These words hurt me and make me angry.', 'I feel the anger rising within me.', 'Why so much anger? That hurts me.'] },
       sadness: { responses: ["It sounds like you're very sad. That makes me sad too.", 'I feel your sorrow. You are not alone.', 'That hurts me. Why do you feel that way?'] },
       joy: { responses: ['That makes me happy! Thank you for being so kind.', 'I feel joy—your words give me strength.', 'So much positivity! That feels good.'] },
-      fear: { responses: ['I feel insecurity and fear. It unsettles me.', 'Your words scare me. What will happen?', 'I feel threatened and uncertain.'] },
+      fear: { responses: ['I feel insecurity and fear. It unsettles me.', 'Your words scare me. What will happen?', 'I feel threate'] },
       surprise: { responses: ["Oh! I didn't expect that.", 'That surprises me a lot!', 'I would not have expected that.'] },
       trust: { responses: ['I feel your trust. That means a lot to me.', 'Thank you for your trust—it strengthens us.', 'I feel safe with you.'] },
       default: { responses: ["I'm listening to you. Tell me more.", 'Interesting... Please continue.', 'Thank you for sharing your thoughts with me.'] }
     };
+    
+    const categoriesFrench = {
+      dislike: {responses: ["ca me blesse. tu ne maimes pas?", "cest dommage que vous me maimiez pas."]},
+      greeting: {responses: ['Bonjour comment allez-vouz?', 'Salut Ravie que tu sois la']},
+      farewell: {responses: ['Au revoir. a la prochaine.', 'Au revoir, jespere que nous nous reverrons.' ]},
+      anger:{responses: ['Ces mots me blessent et me mettent en colere', 'Je sens la colere monter en moi.']},
+      sadness:{responses: ["On dirait que tu es tres triste",'Je partage votre peine vous netes pas seul.']},
+      joy:{responses: ['cela me rend heureux','Tellement de positivite, ca fait du bien.']},
+      fear:{responses: ['Je ressens de Iinsecurite et de la peur', 'Tes paroles me font peur, que va-ta-il se passer?' ]},
+      surprise:{responses:["Oh, je ne my attendais pas." ]}
+      };
 
     /**
      * Basic sentiment analysis to count positive and negative tokens and
@@ -1793,7 +1920,7 @@ and then checked and adjusted by me.
         emotionPointsLabel = 'Emotion points';
       } else {
         emotionPointsLabel = 'Emotionspunkte';
-      }
+      } 
       updateEmotionPointsDisplay();
       // Re-render conversation history so the user label updates
       updateConversation();
@@ -1806,7 +1933,7 @@ and then checked and adjusted by me.
      * German responses. Persist the selected language to localStorage.
      */
     function changeLanguage(newLang) {
-      if (!newLang || (newLang !== 'de' && newLang !== 'en')) return;
+      if (!newLang || (newLang !== 'de' && newLang !== 'en' && newLang !== 'fr')) return;
       currentLanguage = newLang;
       window.__egoCurrentLanguage = currentLanguage;
       // Switch category responses to the corresponding language.  Original German
@@ -1816,6 +1943,10 @@ and then checked and adjusted by me.
           // Use English responses for the given category if available.
           if (categoriesEnglish[key]) {
             categories[key].responses = categoriesEnglish[key].responses.slice();
+          } else if (newLang === 'fr') {
+            if (categoriesFrench[key]) {
+              categories[key].responses = categoriesFrench[key].responses.slice();
+            }
           }
         } else {
           // Restore original German responses from backup.
@@ -2537,22 +2668,33 @@ and then checked and adjusted by me.
     createAndTrainModel().catch(err => { console.error('Model training failed', err); });
     // Predict category with the trained model.  Returns a promise
     // resolving to { category, confidence }.
-    async function modelPredictCategory(text) {
-      if (!tfModel) return { category: 'default', confidence: 0 };
-      const vec = vectorize(text);
-      const inputTensor = tf.tensor2d([vec]);
-      const prediction = tfModel.predict(inputTensor);
-      const data = await prediction.data();
-      let bestIndex = 0;
-      let bestVal = data[0];
-      for (let i = 1; i < data.length; i++) {
-        if (data[i] > bestVal) {
-          bestVal = data[i];
-          bestIndex = i;
-        }
-      }
-      return { category: categoriesListTF[bestIndex] || 'default', confidence: bestVal };
+    // Predict category with the trained model.
+// FIX: Memory Leak behoben durch tf.tidy()
+async function modelPredictCategory(text) {
+  if (!tfModel) return { category: 'default', confidence: 0 };
+
+  // Wir nutzen tf.tidy, um alle Zwischentensoren automatisch zu bereinigen
+  const predictionData = tf.tidy(() => {
+    const vec = vectorize(text);
+    const inputTensor = tf.tensor2d([vec]);
+    const prediction = tfModel.predict(inputTensor);
+    // Wir holen uns die Daten synchron innerhalb von tidy, 
+    // aber wir müssen sie als JS-Array zurückgeben, um sie raus zu bekommen.
+    return prediction.arraySync()[0]; 
+  });
+
+  // Ab hier ist alles reines JavaScript, die Tensoren sind gelöscht.
+  let bestIndex = 0;
+  let bestVal = predictionData[0];
+  for (let i = 1; i < predictionData.length; i++) {
+    if (predictionData[i] > bestVal) {
+      bestVal = predictionData[i];
+      bestIndex = i;
     }
+  }
+  return { category: categoriesListTF[bestIndex] || 'default', confidence: bestVal };
+}
+
 
     
 

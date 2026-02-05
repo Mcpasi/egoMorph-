@@ -61,8 +61,25 @@ Emotion Point System 🎮
 ### ⭐ New Features
 
 - A loading screen has been added.
-- A thinking mode has been added. You can now observe Egomorph thinking.
+- A thinking mode has been added. You can now observe Egomorph thinking
 
 ### 🐞Fixes
 
 - A critical bug has been fixed that caused parts of the code to not execute.
+
+
+## [0.0.7.2 Alpha-Test build] 2026-02-04
+
+**This version was only available for a limited time; it served only as a test build.**
+
+### ⭐ New Features
+
+- French added
+
+## [0.0.7.3 Alpha]
+
+### 🐞fixes
+
+- Errors in the French language have been corrected
+- A bug that prevented the feedback system from being accessed has been fixed
+- A memory leak in the model has been fixed.
