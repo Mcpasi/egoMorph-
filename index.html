@@ -3057,6 +3057,8 @@ async function modelPredictCategory(text) {
 
       // Toggle display of the info panel when the info button is clicked.
       if (infoToggle && infoPanel) {
+        infoToggle.setAttribute('aria-expanded', 'false');
+        infoPanel.setAttribute('aria-hidden', 'true');
         infoToggle.addEventListener('click', () => {
           infoPanel.style.display = infoPanel.style.display === 'none' ? 'block' : 'none';
         });
