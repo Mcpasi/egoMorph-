@@ -1960,10 +1960,11 @@ the software is distributed under the "AS IS" license, without warranties or con
           // Use English responses for the given category if available.
           if (categoriesEnglish[key]) {
             categories[key].responses = categoriesEnglish[key].responses.slice();
-          } else if (newLang === 'fr') {
-            if (categoriesFrench[key]) {
-              categories[key].responses = categoriesFrench[key].responses.slice();
-            }
+          }
+        } else if (newLang === 'fr') {
+          // Use French responses for the given category if available.
+          if (categoriesFrench[key]) {
+            categories[key].responses = categoriesFrench[key].responses.slice();
           }
         } else {
           // Restore original German responses from backup.
