@@ -118,10 +118,12 @@ the software is distributed under the "AS IS" license, without warranties or con
   </div>
   <div id="bubbleLayer" aria-hidden="true"></div>
   <div id="inputSection">
-    <input type="text" id="inputText" placeholder="Sag etwas...">
-    <!-- Assign an id to the send button so its label can be translated dynamically -->
-    <button id="sendBtn" onclick="interact()">Senden</button>
-    <button id="speechButton" title="Spracheingabe starten">🎤</button>
+    <form id="inputForm">
+      <input type="text" id="inputText" placeholder="Sag etwas...">
+      <!-- Assign an id to the send button so its label can be translated dynamically -->
+      <button id="sendBtn" type="submit">Senden</button>
+      <button id="speechButton" type="button" title="Spracheingabe starten">🎤</button>
+    </form>
     <div id="response"></div>
     <div id="memory"></div>
     <!-- Feedback section for user to indicate whether classification was correct -->
