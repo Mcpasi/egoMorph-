@@ -3129,6 +3129,8 @@ async function modelPredictCategory(text) {
       if (settingsToggle && settingsPanel) {
         // Ensure the panel starts hidden even if CSS was overridden by the browser.
         settingsPanel.style.display = 'none';
+          settingsPanel.setAttribute('aria-hidden', 'true');
+        settingsToggle.setAttribute('aria-expanded', 'false');
         settingsToggle.addEventListener('click', () => {
           const isHidden = settingsPanel.style.display === 'none' || settingsPanel.style.display === '';
           settingsPanel.style.display = isHidden ? 'flex' : 'none';
