@@ -868,10 +868,8 @@ the software is distributed under the "AS IS" license, without warranties or con
     // here so it executes during script evaluation.
     loadCustomResponsesIntoCategories();
     // === Multilingual and feedback enhancements ===
-    // Determine current language from storage or default to German.  This can be changed via the settings panel.
-    let currentLanguage = 'de';
-    // Translation dictionary for user interface and messages.  Each language has its own set of labels.
-    const translations = {
+    
+    translations = {
       de: {
         placeholder: 'Sag etwas...',
         sendButton: 'Senden',
