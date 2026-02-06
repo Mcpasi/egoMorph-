@@ -399,6 +399,16 @@ the software is distributed under the "AS IS" license, without warranties or con
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
     }
+      // Determine current language from storage or default to German.  This can be changed via the settings panel.
+    let currentLanguage = 'de';
+    // Provide a minimal default translation map so early UI rendering does not
+    // fail before the full translation table is defined below.
+    let translations = {
+      de: {
+        youPrefix: 'Du:',
+        memoryPrefix: 'Ich erinnere mich an:'
+      }
+    };
     // Render conversation history.
     function updateConversation() {
       // Display conversation history using the appropriate language prefix for the user.
