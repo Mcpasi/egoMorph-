@@ -1924,7 +1924,7 @@ the software is distributed under the "AS IS" license, without warranties or con
       // Update information panel text
       const infoContentEl = document.getElementById('infoContent');
       if (infoContentEl) {
-        infoContentEl.textContent = translations[currentLanguage].infoText;
+        infoContentEl.innerHTML = translations[currentLanguage].infoText;
       }
       // Update saved name display with translated text
       renderSavedUserNameLabel();
