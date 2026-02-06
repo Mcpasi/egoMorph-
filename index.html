@@ -3134,6 +3134,8 @@ async function modelPredictCategory(text) {
         settingsToggle.addEventListener('click', () => {
           const isHidden = settingsPanel.style.display === 'none' || settingsPanel.style.display === '';
           settingsPanel.style.display = isHidden ? 'flex' : 'none';
+            settingsPanel.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+          settingsToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
         });
       }
       if (clearBtn) {
