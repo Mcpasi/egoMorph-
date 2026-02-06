@@ -334,6 +334,12 @@ the software is distributed under the "AS IS" license, without warranties or con
   // persisted across page loads via localStorage.  When false the
   // microphone button is hidden and text‑to‑speech is bypassed.
   let voiceEnabled = true;
+      if (inputForm) {
+      inputForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        interact();
+      });
+    }
     // Speech recognition setup for German.  This gracefully fails
     // if unsupported.
     let recognition = null;
