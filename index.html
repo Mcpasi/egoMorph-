@@ -3060,7 +3060,10 @@ async function modelPredictCategory(text) {
         infoToggle.setAttribute('aria-expanded', 'false');
         infoPanel.setAttribute('aria-hidden', 'true');
         infoToggle.addEventListener('click', () => {
-          infoPanel.style.display = infoPanel.style.display === 'none' ? 'block' : 'none';
+          const isHidden = infoPanel.style.display === 'none' || infoPanel.style.display === '';
+          infoPanel.style.display = isHidden ? 'block' : 'none';
+          infoPanel.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+          infoToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
         });
       }
 
