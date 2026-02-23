@@ -19,7 +19,7 @@ A copy of the license can be found at:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>EgoMorph Optimiert – TensorFlow.js Version</title>
+  <title>EgoMorph – Transformers.js Version</title>
   <!-- Progressive Web App (PWA) support -->
   <!-- Link to the web app manifest which defines how the app behaves when installed on a mobile device -->
   <link rel="manifest" href="manifest.json">
@@ -37,10 +37,17 @@ A copy of the license can be found at:
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Load compromise for simple NLP tasks -->
   <script src="https://unpkg.com/compromise@14.14.4/builds/compromise.min.js"></script>
-  <!-- Load TensorFlow.js.  A pinned version is specified to ensure
-       consistent behaviour across browsers.  Without this library
-       the machine learning enhancements below would not function. -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+  <!-- Load Transformers.js for in-browser transformer model inference.
+       The pipeline function and environment config are exposed on window so
+       that non-module scripts (emotionModel.js) can access them.  A
+       'transformers-ready' event is dispatched once the library is ready. -->
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    env.allowLocalModels = false;
+    window.TransformersPipeline = pipeline;
+    window.TransformersEnv      = env;
+    document.dispatchEvent(new Event('transformers-ready'));
+  </script>
   <script src="vectorizeEmotion.js"></script>
   <script src="emotionModel.js"></script>
   <script src="ltmManager.js"></script>
@@ -231,6 +238,27 @@ A copy of the license can be found at:
           </div>
           <p id="customDescription" class="settings-description">Ergänze individuelle Reaktionen für bestimmte Emotionen.</p>
           <div id="customResponseList" class="settings-description settings-preserve"></div>
+        </div>
+      </details>
+
+      <details id="modelSettings" class="settings-section">
+        <summary id="modelSettingsSummary">KI-Modell</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label id="modelIdLabel" for="customModelId">Hugging&nbsp;Face&nbsp;Model&nbsp;ID</label>
+            <input id="customModelId" type="text"
+                   placeholder="z.&nbsp;B. Xenova/distilroberta-base-emotion"
+                   style="flex:1">
+          </div>
+          <div class="settings-inline-actions">
+            <button id="reloadModelBtn" onclick="reloadEmotionModel()">Modell laden</button>
+            <span id="modelStatusText" class="settings-note" style="color:#aaa">Lade…</span>
+          </div>
+          <p class="settings-hint">
+            Jedes HuggingFace <code>text-classification</code>-Modell kann hier eingetragen werden.
+            Das Modell wird beim ersten Laden gecacht und danach offline genutzt.
+            Standard: <code>Xenova/distilroberta-base-emotion</code>
+          </p>
         </div>
       </details>
 
@@ -3167,13 +3195,9 @@ async function modelPredictCategory(text) {
               console.warn('Category model download failed', err);
             }
           }
-          if (typeof emotionModel !== 'undefined' && emotionModel) {
-            try {
-              await emotionModel.save('downloads://egoMorphEmotionModel');
-            } catch (err) {
-              console.warn('Emotion model download failed', err);
-            }
-          }
+          // Transformers.js models are cached automatically by the browser
+          // (OPFS / Cache API) and do not require a manual download step.
+          console.info('[download] Transformers.js model is cached in the browser automatically.');
         });
       }
       if (setDefBtn && selectEm) {
