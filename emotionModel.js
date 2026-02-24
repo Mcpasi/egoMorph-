@@ -1,7 +1,7 @@
   (function () {
     'use strict';
     
-    var DEFAULT_MODEL = 'Xenova/distilroberta-base-emotion';
+    var DEFAULT_MODEL = 'Xenova/bert-base-multilingual-uncased-sentiment';
     var STORAGE_KEY = 'egoCustomModel';
     
     var emotionClassifier = null;
@@ -92,8 +92,7 @@
     try {
       emotionClassifier = await window.TransformersPipeline(
         'text-classification',
-        id,
-        {topk: null}
+        id
       );
       _modelStatus = 'ready';
       try {localStorage.setItem(STORAGE_KEY, id);} catch (_) {/* ignore */}
@@ -109,7 +108,7 @@
  async function predictEmotionDistribution(text) {
    if (!emotionClassifier) return Object.assign({}, UNIFORM);
     try {
-     var raw = await emotionClassifier(text, {topk: null});
+     var raw = await emotionClassifier(text, {top_k: null});
      var outputs = Array.isArray(raw[0]) ? raw[0] : raw;
      return mapOutputToEmotions(outputs);
     } catch (err) {
