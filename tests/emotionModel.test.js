@@ -105,8 +105,7 @@ describe('emotionModel – Transformers.js implementation', () => {
 
     expect(global.TransformersPipeline).toHaveBeenCalledWith(
       'text-classification',
-      'Xenova/distilroberta-base-emotion',
-      { topk: null }
+      'Xenova/bert-base-multilingual-uncased-sentiment'
     );
     expect(global.getEmotionModelStatus()).toBe('ready');
   });
@@ -128,8 +127,7 @@ describe('emotionModel – Transformers.js implementation', () => {
 
     expect(global.TransformersPipeline).toHaveBeenCalledWith(
       'text-classification',
-      'Xenova/distilroberta-base-emotion',
-      { topk: null }
+      'Xenova/bert-base-multilingual-uncased-sentiment'
     );
     expect(global.getEmotionModelStatus()).toBe('ready');
   });

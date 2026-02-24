@@ -7,7 +7,7 @@
   // automatically by the browser (OPFS / Cache API).  Any HuggingFace
   // text-classification model can be swapped in via the settings UI.
 
-  var DEFAULT_MODEL = 'Xenova/distilroberta-base-emotion';
+  var DEFAULT_MODEL = 'Xenova/bert-base-multilingual-uncased-sentiment';
   var STORAGE_KEY   = 'egoCustomModel';
 
   var emotionClassifier = null;
@@ -114,8 +114,7 @@
     try {
       emotionClassifier = await window.TransformersPipeline(
         'text-classification',
-        id,
-        { topk: null }  // return scores for all labels
+        id
       );
       _modelStatus = 'ready';
       try { localStorage.setItem(STORAGE_KEY, id); } catch (_) { /* ignore */ }
@@ -134,7 +133,7 @@
   async function predictEmotionDistribution(text) {
     if (!emotionClassifier) return Object.assign({}, UNIFORM);
     try {
-      var raw     = await emotionClassifier(text, { topk: null });
+      var raw     = await emotionClassifier(text, { top_k: null });
       // pipeline may return [[{label,score},...]] or [{label,score},...]
       var outputs = Array.isArray(raw[0]) ? raw[0] : raw;
       return mapOutputToEmotions(outputs);
