@@ -19,7 +19,7 @@ A copy of the license can be found at:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>EgoMorph Optimiert – TensorFlow.js Version</title>
+  <title>EgoMorph - New Version</title>
   <!-- Progressive Web App (PWA) support -->
   <!-- Link to the web app manifest which defines how the app behaves when installed on a mobile device -->
   <link rel="manifest" href="manifest.json">
@@ -37,10 +37,13 @@ A copy of the license can be found at:
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Load compromise for simple NLP tasks -->
   <script src="https://unpkg.com/compromise@14.14.4/builds/compromise.min.js"></script>
-  <!-- Load TensorFlow.js.  A pinned version is specified to ensure
-       consistent behaviour across browsers.  Without this library
-       the machine learning enhancements below would not function. -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+  <script type="module">
+    import {pipeline, env} from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    env.allowLocalModels = false;
+    window.TransformersPipeline = pipeline;
+    window.TransformersEnv = env;
+    document.dispatchEvent(new Event('transformers-ready'));
+    </script>
   <script src="vectorizeEmotion.js"></script>
   <script src="emotionModel.js"></script>
   <script src="ltmManager.js"></script>
@@ -233,6 +236,25 @@ A copy of the license can be found at:
           <div id="customResponseList" class="settings-description settings-preserve"></div>
         </div>
       </details>
+      <Details id="modelSettings" class="settings-section">
+        <Summary id ="modelSettingsSummary">KI-Modell</Summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label id="modelIdLabel" for="customModelId">Hugging&nbsp;Face&nbsp;Model&nbsp;ID</label>
+            <input id="customModelId" type="text"
+            placeholder="z.&nbsp;B. Xenova/distilroberta-base-emotion"
+            style="flex:1">
+          </div>
+          <div class="settings-inline-actions">
+            <button id="reloadModelBtn" onclick="reloadEmotionModel()">Modell laden</button>
+            <span id="modelStatusText" class="settings-note" style="color:#aaa">Lade...</span>
+          </div>
+          <p class="settings-hint">
+            Jedes Hugging Face <code>text-classification</code>.-Modell kann hier eingetragen werden. Das Modell wird beim ersten Laden gecacht und danach offline genutzt.
+              Standard: <code>Xenova/distilroberta-base-emotion</code>
+          </p>
+        </div>
+      </Details>
 
       <details id="appearanceSettings" class="settings-section">
         <summary id="appearanceSummary">Erscheinung</summary>
@@ -3166,16 +3188,11 @@ async function modelPredictCategory(text) {
             } catch (err) {
               console.warn('Category model download failed', err);
             }
-          }
-          if (typeof emotionModel !== 'undefined' && emotionModel) {
-            try {
-              await emotionModel.save('downloads://egoMorphEmotionModel');
-            } catch (err) {
-              console.warn('Emotion model download failed', err);
-            }
-          }
+          } 
+        console.info('[download] Transformers.js model is Cache in the Browser automatically.');  
         });
       }
+      
       if (setDefBtn && selectEm) {
         setDefBtn.addEventListener('click', () => {
           const sel = selectEm.value;
