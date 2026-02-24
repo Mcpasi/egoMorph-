@@ -123,8 +123,18 @@
     } catch (err) {
       emotionClassifier = null;
       _modelStatus = 'error';
-      setStatusEl('Fehler beim Laden', '#f66');
-      console.warn('[emotionModel] Failed to load model "' + id + '":', err);
+
+      // Check if the model looks like a text-generation model (gpt, llama, etc.)
+      // and give a more helpful hint so the user uses the Chat-Modell slot instead.
+      var genKeywords = /gpt|llama|bloom|falcon|mistral|qwen|phi|gemma|opt\b|bart|t5\b|flan|causal/i;
+      if (genKeywords.test(id)) {
+        setStatusEl('Generierungs-Modell → Chat-Modell-Slot nutzen', '#fa0');
+        console.warn('[emotionModel] "' + id + '" appears to be a text-generation model. '
+          + 'Use the Chat-Modell settings section for generation models.');
+      } else {
+        setStatusEl('Fehler beim Laden', '#f66');
+        console.warn('[emotionModel] Failed to load model "' + id + '":', err);
+      }
     }
   }
 

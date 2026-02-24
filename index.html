@@ -57,6 +57,7 @@ A copy of the license can be found at:
   </script>
   <script src="vectorizeEmotion.js"></script>
   <script src="emotionModel.js"></script>
+  <script src="chatModel.js"></script>
   <script src="ltmManager.js"></script>
  
   <!-- __RESPONSIVE_CSS__ -->
@@ -249,7 +250,7 @@ A copy of the license can be found at:
       </details>
 
       <details id="modelSettings" class="settings-section">
-        <summary id="modelSettingsSummary">KI-Modell</summary>
+        <summary id="modelSettingsSummary">Emotions-Modell</summary>
         <div class="settings-section-body">
           <div class="settings-field">
             <label id="modelIdLabel" for="customModelId">Hugging&nbsp;Face&nbsp;Model&nbsp;ID</label>
@@ -262,9 +263,42 @@ A copy of the license can be found at:
             <span id="modelStatusText" class="settings-note" style="color:#aaa">Lade…</span>
           </div>
           <p class="settings-hint">
-            Jedes HuggingFace <code>text-classification</code>-Modell kann hier eingetragen werden.
-            Das Modell wird beim ersten Laden gecacht und danach offline genutzt.
+            <code>text-classification</code>-Modell für Emotionserkennung (Freude / Wut / Traurigkeit).
             Standard: <code>Xenova/bert-base-multilingual-uncased-sentiment</code>
+          </p>
+        </div>
+      </details>
+
+      <details id="chatModelSettings" class="settings-section">
+        <summary id="chatModelSettingsSummary">Chat-Modell (LLM)</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label for="customChatModelId">Hugging&nbsp;Face&nbsp;Model&nbsp;ID</label>
+            <input id="customChatModelId" type="text"
+                   placeholder="z.&nbsp;B. Xenova/gpt2"
+                   style="flex:1">
+          </div>
+          <div class="settings-inline-actions">
+            <button onclick="reloadChatModel()">Modell laden</button>
+            <span id="chatModelStatusText" class="settings-note" style="color:#aaa">Kein Modell geladen</span>
+          </div>
+          <div class="settings-field" style="margin-top:10px">
+            <label for="llmMaxTokensInput">Max.&nbsp;Token</label>
+            <input id="llmMaxTokensInput" type="number" min="20" max="300" value="80"
+                   style="width:80px"
+                   onchange="saveLLMMaxTokens(this.value)">
+          </div>
+          <div class="settings-field" style="margin-top:6px">
+            <label for="llmEnabledToggle">LLM-Antworten&nbsp;aktivieren</label>
+            <input id="llmEnabledToggle" type="checkbox"
+                   style="width:auto;margin-left:8px"
+                   onchange="setLLMEnabled(this.checked)">
+          </div>
+          <p class="settings-hint">
+            <code>text-generation</code>-Modell für autonome Antworten (z.&nbsp;B.
+            <code>Xenova/gpt2</code>).
+            Wenn aktiviert, ersetzt das LLM die Template-Antworten.
+            Größere Modelle = bessere Qualität, aber längere Ladezeit.
           </p>
         </div>
       </details>
@@ -3559,6 +3593,32 @@ async function modelPredictCategory(text) {
       await tfModel.save('localstorage://' + storageKey);
       xs2.dispose?.(); ys2.dispose?.();
     } catch (e) { console.warn('feedback replay failed', e); }
+  };
+})();
+</script>
+<script>
+// LLM reply integration: wrap generateSmartReply so that when a
+// text-generation model is loaded and enabled, it replaces template replies
+// with autonomously generated text.  Falls back to the existing pipeline if
+// the LLM is off, not ready, or returns nothing.
+(function () {
+  var _prev = window.generateSmartReply;
+  if (typeof _prev !== 'function') return;
+
+  window.generateSmartReply = async function (text, reply, emotionResults) {
+    if (
+      typeof window.isLLMEnabled  === 'function' && window.isLLMEnabled() &&
+      typeof window.getChatModelStatus === 'function' && window.getChatModelStatus() === 'ready' &&
+      typeof window.generateWithLLM === 'function'
+    ) {
+      try {
+        var llmReply = await window.generateWithLLM(text, emotionResults);
+        if (llmReply && llmReply.length > 2) return llmReply;
+      } catch (err) {
+        console.warn('[LLM wrapper] Generation failed, falling back:', err);
+      }
+    }
+    return _prev(text, reply, emotionResults);
   };
 })();
 </script>
