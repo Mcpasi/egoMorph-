@@ -189,6 +189,16 @@
   }
   
   function _tryInitChat() {
+    // Skip local LLM loading when the profile doesn't need it
+    var profile = (window.egoProfile && window.egoProfile.get()) || 'standard';
+    if (profile !== 'full') {
+      _chatStatus = 'idle';
+      var reason = profile === 'api' ? 'API-Modus aktiv' : 'Profil: ' + profile;
+      setStatusEl(reason + ' \u2013 kein lokales LLM', '#aaa');
+      console.log('[chatModel] Skipped \u2013 profile is "' + profile + '"');
+      return;
+    }
+
     try { _llmEnabled = localStorage.getItem(ENABLED_KEY) === '1'; } catch (_) { /* ignore */ }
  
     var restoreUI = function () {

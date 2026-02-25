@@ -4,13 +4,14 @@
 // attempts to serve cached content first and falls back to the
 // network if the resource is not in the cache.
 
-const CACHE_NAME = 'egomorph-cache-v1';
+const CACHE_NAME = 'egomorph-cache-v2';
 const URLS_TO_CACHE = [
   './',
   'index.html',
   'manifest.json',
   'ego_icon_192.png',
-  'ego_icon_512.png'
+  'ego_icon_512.png',
+  'resourceProfile.js'
 ];
 
 self.addEventListener('install', event => {
