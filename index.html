@@ -52,6 +52,7 @@ A copy of the license can be found at:
   <script src="vectorizeEmotion.js"></script>
   <script src="emotionModel.js"></script>
   <script src="chatModel.js"></script>
+  <script src="ollamaModel.js"></script>
   <script src="ltmManager.js"></script>
  
   <!-- __RESPONSIVE_CSS__ -->
@@ -295,6 +296,41 @@ A copy of the license can be found at:
           </p>
         </div>
       </Details>
+
+      <details id="ollamaSettings" class="settings-section">
+        <summary id="ollamaSettingsSummary">Lokales Llama (Ollama)</summary>
+        <div class="settings-section-body">
+          <div class="settings-field">
+            <label for="ollamaUrlInput">Ollama&nbsp;URL</label>
+            <input id="ollamaUrlInput" type="text"
+                   placeholder="http://localhost:11434"
+                   style="flex:1">
+          </div>
+          <div class="settings-field" style="margin-top:8px">
+            <label for="ollamaModelInput">Modell</label>
+            <input id="ollamaModelInput" type="text"
+                   placeholder="z.&nbsp;B. llama3, mistral, phi3"
+                   style="flex:1">
+          </div>
+          <div class="settings-inline-actions" style="margin-top:8px">
+            <button onclick="saveOllamaSettings()">Verbinden &amp; Testen</button>
+            <span id="ollamaStatusText" class="settings-note" style="color:#aaa">Nicht verbunden</span>
+          </div>
+          <div class="settings-field" style="margin-top:10px">
+            <label for="ollamaEnabledToggle">Ollama-Antworten&nbsp;aktivieren</label>
+            <input id="ollamaEnabledToggle" type="checkbox"
+                   style="width:auto;margin-left:8px"
+                   onchange="setOllamaEnabled(this.checked)">
+          </div>
+          <p class="settings-hint">
+            Spricht ein lokales <strong>Ollama</strong>-Modell auf
+            <code>http://localhost:11434</code> an – <strong>kostenlos &amp; offline</strong>.
+            Starte Ollama zuerst auf deinem Rechner (<code>ollama serve</code>),
+            lade ein Modell (<code>ollama pull llama3</code>) und gib den Modellnamen ein.
+            Ollama hat Vorrang vor dem HuggingFace-Modell wenn aktiv.
+          </p>
+        </div>
+      </details>
 
       <details id="appearanceSettings" class="settings-section">
         <summary id="appearanceSummary">Erscheinung</summary>
@@ -3590,14 +3626,28 @@ async function modelPredictCategory(text) {
 </script>
 <script src="thinkingMode.js" defer></script>
 <script>
-// LLM reply integration: wrap generateSmartReply so that when a
-// text-generation model is loaded and enabled, it replaces template replies
-// with autonomously generated text.  Falls back to the existing pipeline if
-// the LLM is off, not ready, or returns nothing.
+// LLM reply integration: wrap generateSmartReply so that when a backend
+// is loaded and enabled, it replaces template replies with generated text.
+// Priority: 1) Ollama (local Llama via localhost:11434)
+//           2) Transformers.js HuggingFace model (in-browser)
+//           3) Template-based reply (original pipeline)
 (function () {
   var _prev = window.generateSmartReply;
   if (typeof _prev !== 'function') return;
   window.generateSmartReply = async function (text, reply, emotionResults) {
+    // 1. Try Ollama first (local Llama – free, no download needed in browser)
+    if (
+      typeof window.isOllamaEnabled === 'function' && window.isOllamaEnabled() &&
+      typeof window.generateWithOllama === 'function'
+    ) {
+      try {
+        var ollamaReply = await window.generateWithOllama(text, emotionResults);
+        if (ollamaReply && ollamaReply.length > 2) return ollamaReply;
+      } catch (err) {
+        console.warn('[LLM wrapper] Ollama failed, trying next backend:', err);
+      }
+    }
+    // 2. Try Transformers.js HuggingFace model (in-browser inference)
     if (
       typeof window.isLLMEnabled  === 'function' && window.isLLMEnabled() &&
       typeof window.getChatModelStatus === 'function' && window.getChatModelStatus() === 'ready' &&
@@ -3607,9 +3657,10 @@ async function modelPredictCategory(text) {
         var llmReply = await window.generateWithLLM(text, emotionResults);
         if (llmReply && llmReply.length > 2) return llmReply;
       } catch (err) {
-        console.warn('[LLM wrapper] Generation failed, falling back:', err);
+        console.warn('[LLM wrapper] HuggingFace model failed, falling back:', err);
       }
     }
+    // 3. Fall back to template-based replies
     return _prev(text, reply, emotionResults);
   };
 })();
