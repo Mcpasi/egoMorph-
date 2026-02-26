@@ -148,6 +148,13 @@ async function createAndTrainEmotionModel() {
  }
  
  function _tryInit() {
+   var profile = (window.egoProfile && window.egoProfile.get()) || 'standard';
+   if (profile === 'lite' || profile === 'api') {
+     _modelStatus = 'idle';
+     setStatusEl('Profil: ' + profile + ' – kein ML-Modell nötig', '#aaa');
+     console.log('[emotionModel] Skipped – profile is "' + profile + '"');
+     return;
+   }
    var saved = '';
    try {saved = localStorage.getItem(STORAGE_KEY) || '';} catch (_) {/* ignore */}
    initEmotionModel(saved).catch(function (err) {
@@ -159,7 +166,7 @@ async function createAndTrainEmotionModel() {
    if (typeof window !== 'undefined') {
      if (window.TransformersPipeline) {
        _tryInit();
-     } else { 
+     } else if (typeof document !== 'undefined') {
        document.addEventListener('transformers-ready', _tryInit, {once: true });
      }
    }

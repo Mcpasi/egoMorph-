@@ -10,7 +10,8 @@ const URLS_TO_CACHE = [
   'index.html',
   'manifest.json',
   'ego_icon_192.png',
-  'ego_icon_512.png'
+  'ego_icon_512.png',
+  'resourceProfile.js'
 ];
 
 self.addEventListener('install', event => {

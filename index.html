@@ -37,16 +37,26 @@ A copy of the license can be found at:
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Load compromise for simple NLP tasks -->
   <script src="https://unpkg.com/compromise@14.14.4/builds/compromise.min.js"></script>
+  <script src="resourceProfile.js"></script>
   <script type="module">
-    try {
-      const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.js');
-      mod.env.allowLocalModels = false;
-      window.TransformersPipeline = mod.pipeline;
-      window.TransformersEnv = mod.env;
-    } catch (err) {
-      console.error('[Egomorph] Transformers.js konnte nicht geladen werden.:', err);
-    } finally {
+   // Lazy-load Transformers.js only when the resource profile needs it.
+    // In 'lite' and 'api' modes this is skipped entirely → saves ~2 MB
+    // download + significant memory/CPU.
+    const profile = (window.egoProfile && window.egoProfile.get()) || 'standard';
+    if (profile === 'lite' || profile === 'api') {
+      console.log('[egoMorph] Profil "' + profile + '" – Transformers.js wird nicht geladen.');
       document.dispatchEvent(new Event('transformers-ready'));
+    } else {
+      try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.js');
+        mod.env.allowLocalModels = false;
+        window.TransformersPipeline = mod.pipeline;
+        window.TransformersEnv = mod.env;
+      } catch (err) {
+        console.error('[Egomorph] Transformers.js konnte nicht geladen werden.:', err);
+      } finally {
+        document.dispatchEvent(new Event('transformers-ready'));
+      }
     }
     </script>
   <script src="vectorizeEmotion.js"></script>
@@ -242,6 +252,120 @@ A copy of the license can be found at:
           <div id="customResponseList" class="settings-description settings-preserve"></div>
         </div>
       </details>
+      <details id="resourceProfileSettings" class="settings-section" open>
+        <summary>Ressourcen-Profil</summary>
+        <div class="settings-section-body">
+          <p class="settings-hint" style="margin-bottom:10px">
+            Wähle ein Profil passend zu deiner Hardware. Im <strong>Lite</strong>-Modus
+            läuft egoMorph ohne ML-Modelle – ideal für schwache Geräte oder Hosting
+            ohne GPU.
+          </p>
+          <div class="settings-field" style="flex-direction:column;gap:8px">
+            <label class="profile-radio">
+              <input type="radio" name="resourceProfile" value="lite"
+                     onchange="window.egoProfile && window.egoProfile.set('lite')">
+              <span><strong>Lite</strong> – Kein ML, nur Keywords &amp; Templates
+              <br><small style="color:var(--muted)">~0 MB RAM, sofort bereit, kein Download</small></span>
+              </label>
+            <label class="profile-radio">
+              <input type="radio" name="resourceProfile" value="standard"
+                     onchange="window.egoProfile && window.egoProfile.set('standard')">
+              <span><strong>Standard</strong> – Emotions-Modell, Template-Antworten
+              <br><small style="color:var(--muted)">~250–440 MB, gute Emotionserkennung</small></span>
+            </label>
+            <label class="profile-radio">
+              <input type="radio" name="resourceProfile" value="full"
+                     onchange="window.egoProfile && window.egoProfile.set('full')">
+              <span><strong>Voll</strong> – Emotions-Modell + lokales LLM
+              <br><small style="color:var(--muted)">~500–1000 MB, beste Qualität, langsam auf schwacher Hardware</small></span>
+            </label>
+            <label class="profile-radio">
+              <input type="radio" name="resourceProfile" value="api"
+                     onchange="window.egoProfile && window.egoProfile.set('api')">
+              <span><strong>API</strong> – Externe API (OpenAI / Ollama / LM Studio)
+              <br><small style="color:var(--muted)">~0 MB lokal, braucht API-Endpunkt</small></span>
+            </label>
+          </div>
+          <p class="settings-hint" style="margin-top:8px;color:#fa0">
+            Profiländerung wird nach Neuladen der Seite wirksam.
+          </p>
+        </div>
+      </details>
+ 
+      <details id="apiSettings" class="settings-section" style="display:none">
+        <summary>API-Einstellungen</summary>
+        <div class="settings-section-body">
+          <p class="settings-hint" style="margin-bottom:8px">
+            Verbinde egoMorph mit einem externen LLM. Funktioniert mit OpenAI,
+            Ollama (<code>http://localhost:11434</code>), LM Studio, llama.cpp
+            und jedem OpenAI-kompatiblen Endpunkt.
+          </p>
+          <div class="settings-field">
+            <label for="egoApiUrlInput">API-URL</label>
+            <input id="egoApiUrlInput" type="text"
+                   placeholder="z. B. http://localhost:11434 oder https://api.openai.com"
+                   style="flex:1">
+          </div>
+          <div class="settings-field" style="margin-top:6px">
+            <label for="egoApiKeyInput">API-Key</label>
+            <input id="egoApiKeyInput" type="password"
+                   placeholder="(optional, für OpenAI etc.)"
+                   style="flex:1">
+          </div>
+          <div class="settings-field" style="margin-top:6px">
+            <label for="egoApiModelInput">Modell-Name</label>
+            <input id="egoApiModelInput" type="text"
+                   placeholder="z. B. gpt-3.5-turbo, llama3, mistral"
+                   style="flex:1">
+          </div>
+          <div class="settings-inline-actions" style="margin-top:8px">
+            <button onclick="(function(){
+              var u=document.getElementById('egoApiUrlInput');
+              var k=document.getElementById('egoApiKeyInput');
+              var m=document.getElementById('egoApiModelInput');
+              if(window.egoProfile){
+                window.egoProfile.setApiConfig(u?u.value:'',k?k.value:'',m?m.value:'');
+              }
+              var s=document.getElementById('apiStatusText');
+              if(s){s.textContent='Gespeichert';s.style.color='#6f6';}
+            })()">Speichern</button>
+            <button onclick="(function(){
+              var s=document.getElementById('apiStatusText');
+              if(s){s.textContent='Teste…';s.style.color='#aaa';}
+              if(!window.egoProfile){return;}
+              window.egoProfile.apiChatCompletion([{role:'user',content:'Hallo'}],10)
+                .then(function(){if(s){s.textContent='Verbindung OK';s.style.color='#6f6';}})
+                .catch(function(e){if(s){s.textContent='Fehler: '+String(e).slice(0,80);s.style.color='#f66';}});
+            })()">Verbindung testen</button>
+            <span id="apiStatusText" class="settings-note" style="color:#aaa"></span>
+          </div>
+          <div style="margin-top:12px">
+            <p class="settings-hint"><strong>Beispiel-Konfigurationen:</strong></p>
+            <div class="settings-actions" style="margin-top:6px">
+              <button onclick="(function(){
+                var u=document.getElementById('egoApiUrlInput');
+                var m=document.getElementById('egoApiModelInput');
+                if(u)u.value='http://localhost:11434';
+                if(m)m.value='llama3';
+              })()">Ollama (lokal)</button>
+              <button onclick="(function(){
+                var u=document.getElementById('egoApiUrlInput');
+                var m=document.getElementById('egoApiModelInput');
+                if(u)u.value='http://localhost:1234';
+                if(m)m.value='local-model';
+              })()">LM Studio</button>
+              <button onclick="(function(){
+                var u=document.getElementById('egoApiUrlInput');
+                var m=document.getElementById('egoApiModelInput');
+                if(u)u.value='https://api.openai.com';
+                if(m)m.value='gpt-3.5-turbo';
+              })()">OpenAI</button>
+              </div>
+            </div>
+        </div>
+      </details>
+            
+            
       <Details id="modelSettings" class="settings-section">
         <summary id="modelSettingsSummary">Emotions-Modell</summary>
         <div class="settings-section-body">
@@ -259,6 +383,15 @@ A copy of the license can be found at:
             <code>text-classification</code>-Modell für Emotionserkennung (Freude / Wut / Traurigkeit).
             Standard: <code>Xenova/bert-base-multilingual-uncased-sentiment</code>
           </p>
+          <div style="margin-top:8px">
+            <p class="settings-hint"><strong>Leichte Modelle (weniger RAM):</strong></p>
+            <div class="settings-actions" style="margin-top:4px">
+              <button onclick="document.getElementById('customModelId').value='Xenova/distilbert-base-uncased-finetuned-sst-2-english'"
+                title="~250 MB – schneller, weniger RAM">DistilBERT (~250 MB)</button>
+                <button onclick="document.getElementById('customModelId').value='Xenova/bert-base-multilingual-uncased-sentiment'"
+                title="~440 MB – Standard">BERT Multilingual (~440 MB)</button>
+            </div>
+          </div>
         </div>
         </details>
  
@@ -292,8 +425,17 @@ A copy of the license can be found at:
             <code>Xenova/gpt2</code>).
             Wenn aktiviert, ersetzt das LLM die Template-Antworten.
             Größere Modelle = bessere Qualität, aber längere Ladezeit.
-          </p>
-        </div>
+            </p>
+          <div style="margin-top:8px">
+            <p class="settings-hint"><strong>Leichte Modelle:</strong></p>
+            <div class="settings-actions" style="margin-top:4px">
+              <button onclick="document.getElementById('customChatModelId').value='Xenova/distilgpt2'"
+                title="~200 MB – sehr klein, schnell">DistilGPT-2 (~200 MB)</button>
+                <button onclick="document.getElementById('customChatModelId').value='Xenova/gpt2'"
+                title="~500 MB – Standard GPT-2">GPT-2 (~500 MB)</button>
+            </div>
+          </div>
+          </div>
       </Details>
 
       <details id="appearanceSettings" class="settings-section">
@@ -3508,6 +3650,34 @@ async function modelPredictCategory(text) {
       }
     }
   </script>
+  <script>
+// Resource profile wrapper for predictEmotionDistribution:
+// In 'lite' mode → keyword-based detection (no ML at all)
+// In 'api' mode → external API call for emotion classification
+// Otherwise → original ML-based prediction
+  (function () {
+  var _origPred = window.predictEmotionDistribution;
+  if (typeof _origPred !== 'function') return;
+  window.predictEmotionDistribution = async function (text) {
+    var profile = (window.egoProfile && window.egoProfile.get()) || 'standard';
+ 
+    if (profile === 'lite') {
+      return window.egoProfile.keywordEmotionDetect(text);
+    }
+    
+    if (profile === 'api') {
+      try {
+        return await window.egoProfile.apiEmotionDetect(text);
+      } catch (err) {
+        console.warn('[profile] API emotion failed, using keywords:', err);
+        return window.egoProfile.keywordEmotionDetect(text);
+      }
+    }
+    // standard / full → use ML model
+    return _origPred(text);
+  };
+})();
+</script>
 
 
 <script>
@@ -3594,10 +3764,21 @@ async function modelPredictCategory(text) {
 // text-generation model is loaded and enabled, it replaces template replies
 // with autonomously generated text.  Falls back to the existing pipeline if
 // the LLM is off, not ready, or returns nothing.
+// Extended: also supports API mode via egoProfile.
 (function () {
   var _prev = window.generateSmartReply;
   if (typeof _prev !== 'function') return;
   window.generateSmartReply = async function (text, reply, emotionResults) {
+    // API mode: use external API for reply generation
+    if (window.egoProfile && window.egoProfile.usesApi()) {
+      try {
+        var apiReply = await window.egoProfile.apiGenerateReply(text, emotionResults);
+        if (apiReply && apiReply.length > 2) return apiReply;
+      } catch (err) {
+        console.warn('[API wrapper] Generation failed, falling back:', err);
+      }
+    }
+    // Full mode: use local LLM if loaded and enabled
     if (
       typeof window.isLLMEnabled  === 'function' && window.isLLMEnabled() &&
       typeof window.getChatModelStatus === 'function' && window.getChatModelStatus() === 'ready' &&

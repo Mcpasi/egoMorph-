@@ -491,6 +491,28 @@ body {
     .settings-preserve {
       white-space: pre-wrap;
     }
+    
+    /* Resource profile radio buttons */
+    .profile-radio {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #222235);
+      transition: background 0.2s;
+    }
+    .profile-radio:hover {
+      background: rgba(110, 168, 254, 0.08);
+    }
+    .profile-radio input[type="radio"] {
+      margin-top: 4px;
+      width: auto;
+    }
+    .profile-radio input[type="radio"]:checked + span {
+      color: var(--accent, #6ea8fe);
+    }
 
     @media (max-width: 420px) {
       .settings-field {
