@@ -337,6 +337,84 @@ Browser-Start
               +-> *:    Template-Antwort + Emotion-Kommentar + Kontext
 
 
+### localStorage-Keys
+ 
+| Key | Beschreibung |
+|-----|-------------|
+| `egoResourceProfile` | Aktives Profil (lite/standard/full/api) |
+| `egoApiUrl` | API-Endpunkt-URL |
+| `egoApiKey` | API-Authentifizierungs-Key |
+| `egoApiModel` | API-Modell-Name |
+| `egoConversation` | Chatverlauf |
+| `egoMemory` | Kurzzeit-Erinnerungen |
+| `egoLongTermMemory` | Langzeitgedaechtnis (max. 200 Eintraege) |
+| `egoEmotionPoints` | Emotionspunkte-Stand |
+| `egoLLMEnabled` | Lokales LLM an/aus |
+| `egoLLMMaxTokens` | Max. Token fuer LLM-Antworten |
+| `egoChatModel` | ID des geladenen Chat-Modells |
+| `egoCustomModel` | ID des geladenen Emotions-Modells |
+| `egoUserName` | Name des Nutzers |
+| `egoVoiceEnabled` | Sprachausgabe an/aus |
+
+---
+ 
+## Tests
+ 
+```bash
+# Abhaengigkeiten installieren (nur Jest fuer Tests)
+npm install
+ 
+# Tests ausfuehren
+npm test
+```
+
+Tests befinden sich im `tests/`-Verzeichnis:
+- `emotionModel.test.js` – Emotions-Modell und Vokabular
+- `ltmManager.test.js` – Langzeitgedaechtnis-Scoring und -Verwaltung
+- `vectorizeEmotion.test.js` – Emotionsvektorisierung
+ 
+---
+
+## FAQ
+ 
+**Brauche ich eine GPU?**
+Nein. Alle ML-Modelle laufen ueber WebAssembly (WASM) im Browser auf der CPU. Im Lite- und API-Modus werden gar keine lokalen Modelle geladen.
+ 
+**Welchen Modus soll ich waehlen?**
+- Altes Smartphone / billiger Webspace -> **Lite**
+- Normaler Laptop / Desktop -> **Standard**
+- Leistungsstarker PC, beste lokale Qualitaet -> **Voll**
+- Eigener Server mit Ollama / Zugang zu OpenAI -> **API**
+ 
+**Werden meine Daten irgendwohin gesendet?**
+Im Lite-, Standard- und Voll-Modus: **Nein.** Alles bleibt lokal im Browser. Im API-Modus werden Nachrichten an den konfigurierten API-Endpunkt gesendet – stelle sicher, dass du dem Anbieter vertraust.
+
+**Wie gross sind die ML-Modelle?**
+- Emotions-Modell (DistilBERT): ~250 MB
+- Emotions-Modell (BERT Multilingual): ~440 MB
+- Chat-Modell (DistilGPT-2): ~200 MB
+- Chat-Modell (GPT-2): ~500 MB
+Modelle werden nach dem ersten Download automatisch im Browser gecacht.
+
+**Kann ich ein eigenes Hugging Face Modell verwenden?**
+Ja. Jedes `text-classification`-Modell fuer Emotionserkennung und jedes `text-generation`-Modell fuer Chat-Antworten kann ueber die Einstellungen geladen werden. Das Modell muss im ONNX-Format bei Hugging Face vorliegen (Xenova-Namespace).
+
+**Funktioniert EgoMorph offline?**
+Ja. Nach dem ersten Laden (und ggf. dem Download der ML-Modelle) funktioniert die App vollstaendig offline. Der Service Worker cached alle noetige Dateien. Der API-Modus braucht natuerlich eine Netzwerkverbindung zum API-Server.
+ 
+---
+
+## Lizenz
+ 
+MIT
+ 
+Copyright 2025-2026 Pascal (Mcpasi)
+
+
+
+
+
+
 
 
 
