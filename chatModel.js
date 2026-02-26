@@ -103,6 +103,16 @@
     if (emotionStr) prompt += ' Aktuelle Emotion: ' + emotionStr + '.';
     prompt += '\n';
  
+    // Include long-term memory context if available.
+    if (typeof window.getLTMSummary === 'function') {
+      try {
+        var ltmSummary = window.getLTMSummary(3);
+        if (ltmSummary) {
+          prompt += 'Langzeitgedaechtnis:\n' + ltmSummary + '\n';
+        }
+      } catch (_) { /* ignore */ }
+    }
+
     // Include recent conversation history from localStorage (last 3 turns).
     try {
       var hist = JSON.parse(localStorage.getItem('egoConversation') || '[]');

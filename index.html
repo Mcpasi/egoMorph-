@@ -182,6 +182,7 @@ Alpha
             <button id="toggleVoiceBtn">Stimme deaktivieren</button>
             <button id="downloadModelBtn">Modell herunterladen</button>
             <button id="ltmExportBtn">Speichern</button>
+            <button id="ltmImportBtn">Importieren</button>
             <button id="ltmClearBtn">Löschen</button>
           </div>
         
@@ -1115,6 +1116,7 @@ Alpha
         quickActionsTitle: 'Schnellaktionen',
         quickActionsHint: 'Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.',
         ltmExportBtn: 'Speichern',
+        ltmImportBtn: 'Importieren',
         ltmClearBtn: 'Löschen',
         defaultSectionTitle: 'Standardwerte',
         defaultSectionHint: 'Diese Auswahl bestimmt den Ausgangston der Unterhaltung.',
@@ -1212,6 +1214,7 @@ Alpha
         quickActionsTitle: 'Quick actions',
         quickActionsHint: 'Control history, voice and stored data right here.',
         ltmExportBtn: 'Save',
+        ltmImportBtn: 'Import',
         ltmClearBtn: 'Delete',
         defaultSectionTitle: 'Defaults',
         defaultSectionHint: 'This choice defines the initial tone of the conversation.',
@@ -1309,6 +1312,7 @@ Alpha
         quickActionsTitle: 'Action rapide',
         quickActionsHint: 'Controlez lhistorique la voix et les donees enregistrees ici meme',
         ltmExportBtn: 'Sauvegarder',
+        ltmImportBtn: 'Importer',
         ltmClearBtn: 'supprimer',
         defaultSectionTitle: 'default',
         defaultSectionHint: 'Ce choix definit le ton initial de la conversation.',
@@ -1597,7 +1601,7 @@ Alpha
      * Determine the most appropriate category for a given input.  Uses
      * keyword counts and sentiment to select the best match.  If no
      * keywords match, returns 'default'.  This function does not
-     * incorporate the TensorFlow.js model – that is handled in the
+     * incorporate the ML model – that is handled in the
      * interact() function below so that asynchronous predictions can
      * influence the final decision.
      */
@@ -1956,6 +1960,10 @@ Alpha
       const ltmExportEl = document.getElementById('ltmExportBtn');
       if (ltmExportEl) {
         ltmExportEl.textContent = translations[currentLanguage].ltmExportBtn;
+      }
+      const ltmImportEl = document.getElementById('ltmImportBtn');
+      if (ltmImportEl) {
+        ltmImportEl.textContent = translations[currentLanguage].ltmImportBtn;
       }
       const ltmClearEl = document.getElementById('ltmClearBtn');
       if (ltmClearEl) {
@@ -2784,7 +2792,7 @@ Alpha
     // time a simple neural network is trained to recognise these
     // categories.  When a message is received, the model's prediction
     // can override the rule-based category if the confidence is high.
-    // TensorFlow model used for category classification.  This will be
+    // Category classification model (tf.js sequential).  This will be
     // lazily initialised either by loading from browser storage or,
     // if no saved model is present, by training a new one.  Using a
     // persistent key allows the model to survive across page reloads.
@@ -2886,7 +2894,7 @@ Alpha
     // Predict category with the trained model.  Returns a promise
     // resolving to { category, confidence }.
     // Predict category with the trained model.
-// FIX: Memory Leak behoben durch tf.tidy()
+// FIX: Memory Leak behoben durch tf.tidy() (Kategorie-Klassifikation)
 async function modelPredictCategory(text) {
   if (!tfModel) return { category: 'default', confidence: 0 };
 
@@ -2946,7 +2954,7 @@ async function modelPredictCategory(text) {
      * Main interaction handler.  This function is asynchronous to
      * accommodate the machine learning prediction.  It preserves all
      * previous behaviours – memory, conversation display, emotion
-     * updates, speech synthesis – while allowing the TensorFlow.js
+     * updates, speech synthesis – while allowing the ML
      * model to override the rule-based category when sufficiently
      * confident.  Thresholds can be tuned to balance between rule-
      * based and learned behaviours.
@@ -3148,6 +3156,23 @@ async function modelPredictCategory(text) {
         localStorage.setItem('egoMemoryTopics', JSON.stringify(topicsToStore));
         localStorage.setItem('egoConversation', JSON.stringify(conversation));
       } catch (e) {}
+      // Persist to long-term memory with emotion context and topics.
+      if (typeof window.addLongTermMemory === 'function' && text) {
+        try {
+          var dominant = null;
+          if (lastEmotionResults) {
+            var maxV = 0;
+            for (var ek in lastEmotionResults) {
+              if (typeof lastEmotionResults[ek] === 'number' && lastEmotionResults[ek] > maxV) {
+                dominant = ek;
+                maxV = lastEmotionResults[ek];
+              }
+            }
+          }
+          var topicsArr = Array.isArray(memory.topics) ? memory.topics : [];
+          window.addLongTermMemory({ text: text, topics: topicsArr, emotion: dominant });
+        } catch (ltmErr) {}
+      }
       // Speak the final reply (if voice is enabled).
       speak(finalReply);
       // Show a feedback prompt so the user can evaluate the classification.
@@ -3359,7 +3384,7 @@ async function modelPredictCategory(text) {
       if (downloadBtn) {
         downloadBtn.addEventListener('click', async () => {
           // Trigger downloads of the trained models if available.  Use
-          // TensorFlow.js built‑in download mechanism to prompt the user.
+          // Built-in download mechanism to prompt the user.
           if (typeof tfModel !== 'undefined' && tfModel) {
             try {
               await tfModel.save('downloads://egoMorphCategoryModel');
@@ -3729,6 +3754,8 @@ async function modelPredictCategory(text) {
     //New 15.08.2025
     const ltmExport = document.getElementById('ltmExportBtn');
     if (ltmExport) { ltmExport.addEventListener('click', exportLongTermMemory); }
+    const ltmImport = document.getElementById('ltmImportBtn');
+    if (ltmImport) { ltmImport.addEventListener('click', importLongTermMemory); }
     const ltmClear = document.getElementById('ltmClearBtn');
     if (ltmClear) { ltmClear.addEventListener('click', clearLongTermMemory); }
     
