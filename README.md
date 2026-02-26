@@ -272,6 +272,79 @@ vectorizeEmotion.js   Hilfsmodul fuer Emotionsvektorisierung
     ltmManager.test.js
     vectorizeEmotion.test.js
 
+| Datei | Beschreibung |
+|-------|-------------|
+| `index.html` | Gesamte App-Logik: UI, Emotionssystem, Kategorien, Konversation, Persoenlichkeit, NLP-Boost, Sprachein-/ausgabe |
+| `resourceProfile.js` | Steuert die vier Betriebsmodi (Lite/Standard/Voll/API), keyword-basierte Emotionserkennung, OpenAI-kompatibler API-Client |
+| `chatModel.js` | Laedt und verwaltet Text-Generation-Modelle ueber Transformers.js |
+| `emotionModel.js` | Laedt und verwaltet Text-Classification-Modelle fuer Emotionserkennung |
+| `ltmManager.js` | Langzeitgedaechtnis mit Scoring (Haeufigkeit + Aktualitaet + Themenrelevanz), max. 200 Eintraege |
+| `sw.js` | Service Worker – cached App-Dateien fuer Offline-Nutzung |
+ 
+---
+
+## Fuer Entwickler
+ 
+### Code anpassen
+ 
+1. Repository klonen:
+   ```bash
+   git clone https://github.com/Mcpasi/egoMorph-.git
+   cd egoMorph-
+   ```
+
+2. Dateien in einem Editor oeffnen (z. B. [VS Code](https://code.visualstudio.com/)).
+
+3. Aendern nach Bedarf:
+   - **Antwort-Templates:** In `index.html` im `categories`-Objekt (Zeile ~726)
+   - **Emotionen/Keywords:** In `index.html` in den Wortlisten und `categories`
+   - **Keyword-Erkennung (Lite-Modus):** In `resourceProfile.js` im `KEYWORD_EMOTIONS`-Objekt
+   - **API-Prompts:** In `resourceProfile.js` in `apiEmotionDetect()` und `apiGenerateReply()`
+   - **UI/CSS:** In `style.css` und im `<style>`-Block von `index.html`
+
+4. Im Browser oeffnen und testen:
+   ```bash
+   # Einfacher lokaler Server
+   npx serve .
+   ```
+
+### Architektur
+ 
+```
+Browser-Start
+  |
+  +-> resourceProfile.js laedt Profil aus localStorage
+  |
+  +-> Transformers.js wird nur geladen wenn Profil = standard/full
+  |
++-> emotionModel.js initialisiert (oder ueberspringt bei lite/api)
+  +-> chatModel.js initialisiert (oder ueberspringt wenn != full)
+  |
+ +-> Nutzer-Nachricht
+        |
+        +-> predictEmotionDistribution()
+        |     lite:     keywordEmotionDetect()
+        |     api:      apiEmotionDetect()
+        |     standard: ML-Modell (Transformers.js)
+        |     full:     ML-Modell (Transformers.js)
+        |
++-> Kategorie-Matching (keywords)
+        +-> Template-Antwort auswaehlen
+        +-> generateSmartReply()
+              |
+              +-> api:  apiGenerateReply() -> fertig
+              +-> full: generateWithLLM()  -> fertig (wenn LLM aktiv)
+              +-> *:    Template-Antwort + Emotion-Kommentar + Kontext
+
+
+
+
+
+
+
+
+
+
 
 
 
