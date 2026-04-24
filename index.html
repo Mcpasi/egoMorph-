@@ -74,6 +74,9 @@ Alpha
       max-width:1100px;margin:0 auto;padding:16px 16px 88px; /* leave space for mobile bottom bar */
     }
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    #appLogo{position:fixed;top:12px;left:12px;z-index:70;display:inline-flex;align-items:center;justify-content:center;pointer-events:none}
+    #appLogo img{height:48px;width:auto;display:block}
+    @media (max-width: 960px){ #appLogo img{height:36px} }
     .toolbar{position:sticky;top:0;z-index:50;background:rgba(15,17,23,.7);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--border)}
     .toolbar .inner{display:flex;gap:12px;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:10px 16px}
     .toolbar h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}
