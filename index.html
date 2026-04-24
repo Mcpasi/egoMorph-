@@ -74,6 +74,9 @@ Alpha
       max-width:1100px;margin:0 auto;padding:16px 16px 88px; /* leave space for mobile bottom bar */
     }
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    #appLogo{position:fixed;top:12px;left:12px;z-index:70;display:inline-flex;align-items:center;justify-content:center;pointer-events:none}
+    #appLogo img{height:48px;width:auto;display:block}
+    @media (max-width: 960px){ #appLogo img{height:36px} }
     .toolbar{position:sticky;top:0;z-index:50;background:rgba(15,17,23,.7);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--border)}
     .toolbar .inner{display:flex;gap:12px;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:10px 16px}
     .toolbar h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}
@@ -116,6 +119,10 @@ Alpha
 </head>
 <body>
   <!-- Logo and welcome modal -->
+  <!-- Logo in top-left corner. Replace logo.png with your own image. -->
+  <div id="appLogo" aria-label="EgoMorph Logo">
+    <img src="logo.png" alt="EgoMorph Logo">
+  </div>
   <!-- Modal overlay shown on first load.  It introduces the user to the app. -->
   <div id="welcomeModal" class="modal">
     <div class="modal-content">
@@ -362,7 +369,7 @@ Alpha
       </details>
             
             
-      <Details id="modelSettings" class="settings-section">
+      <details id="modelSettings" class="settings-section">
         <summary id="modelSettingsSummary">Emotions-Modell</summary>
         <div class="settings-section-body">
           <div class="settings-field">
@@ -432,7 +439,7 @@ Alpha
             </div>
           </div>
           </div>
-      </Details>
+      </details>
 
       <details id="appearanceSettings" class="settings-section">
         <summary id="appearanceSummary">Erscheinung</summary>
@@ -1535,7 +1542,7 @@ Alpha
       anger: { responses: ['These words hurt me and make me angry.', 'I feel the anger rising within me.', 'Why so much anger? That hurts me.'] },
       sadness: { responses: ["It sounds like you're very sad. That makes me sad too.", 'I feel your sorrow. You are not alone.', 'That hurts me. Why do you feel that way?'] },
       joy: { responses: ['That makes me happy! Thank you for being so kind.', 'I feel joy—your words give me strength.', 'So much positivity! That feels good.'] },
-      fear: { responses: ['I feel insecurity and fear. It unsettles me.', 'Your words scare me. What will happen?', 'I feel threate'] },
+      fear: { responses: ['I feel insecurity and fear. It unsettles me.', 'Your words scare me. What will happen?', 'I feel threatened.'] },
       surprise: { responses: ["Oh! I didn't expect that.", 'That surprises me a lot!', 'I would not have expected that.'] },
       trust: { responses: ['I feel your trust. That means a lot to me.', 'Thank you for your trust—it strengthens us.', 'I feel safe with you.'] },
       default: { responses: ["I'm listening to you. Tell me more.", 'Interesting... Please continue.', 'Thank you for sharing your thoughts with me.'] }
