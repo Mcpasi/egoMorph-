@@ -107,4 +107,23 @@
      * Bei eindeutig anstößigem Inhalt wird die Antwort komplett ersetzt,
      * damit nicht nur ein zerlöcherter Satz übrig bleibt.
      */
+    function filterModelOutput(text) {
+        if (text === null || text === undefined)
+            return null;
+        if (typeof text !== 'string' || text.length === 0)
+            return null;
+        const result = filter(text, { blockOnMatch: false });
+        if (!result.flagged)
+            return result.text;
+        if (result.matches.length >= 2 || result.text === null) {
+            try {
+                if (typeof console !== 'undefined' && console.warn) {
+                    console.warn('[SafetyFilter] Antwort blockiert. Treffer:', result.matches);
+                }
+            }
+            catch (_) { /* ignore */ }
+            return DEFAULT_BLOCK_RESPONSE;
+        }
+        try {
+            if (typeof console !== 'undefined' && console.warn) {
       
