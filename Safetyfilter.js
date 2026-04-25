@@ -28,4 +28,22 @@
         'umbringen', 'töten', 'erschießen', 'erstechen', 'vergewaltigen',
         'vergewaltigung', 'abschlachten', 'massakrieren',
         // Sexualisierung / explizit (DE)
+        'kinderporno', 'kinderpornos', 'kinderpornographie', 'kinderpornografie',
+        'pädophil', 'paedophil', 'pädo', 'paedo',
+        // Beleidigungen / Hass (EN)
+        'asshole', 'assholes', 'bitch', 'bitches', 'cunt', 'cunts', 'whore',
+        'whores', 'slut', 'sluts', 'faggot', 'faggots', 'retard', 'retards',
+        'nigga', 'niggas',
+        // Gewalt / Drohung (EN)
+        'kill yourself', 'kys', 'rape', 'raping', 'molest', 'molesting',
+        // Sexualisierung / explizit (EN)
+        'child porn', 'childporn', 'cp ', 'pedo', 'pedophile',
+    ];
+    const DEFAULT_BLOCK_RESPONSE = 'Entschuldigung, diese Antwort wurde aus Sicherheitsgründen gefiltert.';
+    function escapeRegex(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    function buildPattern(terms) {
+        // Phrasen (mit Leerzeichen) und Einzelwörter werden gemeinsam erkannt.
+        // \b funktioniert für lateinische Buchstaben + Umlaute via Unicode-Flag.
       
