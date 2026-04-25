@@ -138,3 +138,24 @@ interface SafetyFilterApi {
     }
     return { text: cleaned, flagged: flagged, matches: matches };
   }
+
+ /**
+   * Convenience-Wrapper, der von chatModel.js im Full-Modus aufgerufen wird.
+   * Bei eindeutig anstößigem Inhalt wird die Antwort komplett ersetzt,
+   * damit nicht nur ein zerlöcherter Satz übrig bleibt.
+   */
+  function filterModelOutput(text: string | null | undefined): string | null {
+    if (text === null || text === undefined) return null;
+    if (typeof text !== 'string' || text.length === 0) return null;
+
+    const result: SafetyFilterResult = filter(text, { blockOnMatch: false });
+    if (!result.flagged) return result.text;
+
+    if (result.matches.length >= 2 || result.text === null) {
+      try {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[SafetyFilter] Antwort blockiert. Treffer:', result.matches);
+        }
+      } catch (_) { /* ignore */ }
+      return DEFAULT_BLOCK_RESPONSE;
+    }
