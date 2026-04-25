@@ -46,4 +46,33 @@
     function buildPattern(terms) {
         // Phrasen (mit Leerzeichen) und Einzelwörter werden gemeinsam erkannt.
         // \b funktioniert für lateinische Buchstaben + Umlaute via Unicode-Flag.
+        const escaped = terms.map(escapeRegex);
+        return new RegExp('(?<![\\p{L}])(' + escaped.join('|') + ')(?![\\p{L}])', 'giu');
+    }
+    function normalize(text) {
+        return (text || '').toLowerCase();
+    }
+    function dedupe(values) {
+        const seen = {};
+        const out = [];
+        for (let i = 0; i < values.length; i++) {
+            const v = values[i];
+            if (!seen[v]) {
+                seen[v] = true;
+                out.push(v);
+            }
+        }
+        return out;
+    }
+    function getActiveTerms(extra) {
+        if (!extra || extra.length === 0)
+            return BLOCKED_TERMS;
+        const merged = BLOCKED_TERMS.slice();
+        for (let i = 0; i < extra.length; i++) {
+            const t = (extra[i] || '').toLowerCase().trim();
+            if (t)
+                merged.push(t);
+        }
+        return dedupe(merged);
+    }
       
