@@ -29,3 +29,10 @@ interface SafetyFilterResult {
   /** Liste der erkannten Begriffe (lower-case, dedupliziert). */
   matches: string[];
 }
+
+interface SafetyFilterApi {
+  contains(text: string, extraTerms?: string[]): boolean;
+  filter(text: string, options?: SafetyFilterOptions): SafetyFilterResult;
+  filterModelOutput(text: string | null | undefined): string | null;
+  getBlockedTerms(): string[];
+}
