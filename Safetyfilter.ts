@@ -159,3 +159,27 @@ interface SafetyFilterApi {
       } catch (_) { /* ignore */ }
       return DEFAULT_BLOCK_RESPONSE;
     }
+
+  try {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[SafetyFilter] Antwort maskiert. Treffer:', result.matches);
+      }
+    } catch (_) { /* ignore */ }
+    return result.text;
+  }
+
+  function getBlockedTerms(): string[] {
+    return BLOCKED_TERMS.slice();
+  }
+
+  const api: SafetyFilterApi = {
+    contains: contains,
+    filter: filter,
+    filterModelOutput: filterModelOutput,
+    getBlockedTerms: getBlockedTerms,
+  };
+
+  // Browser-Registrierung
+  if (typeof window !== 'undefined') {
+    (window as unknown as { SafetyFilter: SafetyFilterApi }).SafetyFilter = api;
+  }
