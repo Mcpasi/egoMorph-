@@ -45,9 +45,13 @@
     }
     function buildPattern(terms) {
         // Phrasen (mit Leerzeichen) und Einzelwörter werden gemeinsam erkannt.
-        // \b funktioniert für lateinische Buchstaben + Umlaute via Unicode-Flag.
-        const escaped = terms.map(escapeRegex);
-        return new RegExp('(?<![\\p{L}])(' + escaped.join('|') + ')(?![\\p{L}])', 'giu');
+        // Das führende Trennzeichen wird als Gruppe erfasst, damit kein Regex-
+        // Lookbehind nötig ist und der Filter auch in älteren Browsern läuft.
+        const escaped = terms
+            .slice()
+            .sort(function (a, b) { return b.length - a.length; })
+            .map(escapeRegex);
+        return new RegExp('(^|[^\\p{L}])(' + escaped.join('|') + ')(?![\\p{L}])', 'giu');
     }
     function normalize(text) {
         return (text || '').toLowerCase();
@@ -90,10 +94,9 @@
         }
         const pattern = buildPattern(getActiveTerms(opts.extraTerms));
         const found = [];
-        const cleaned = text.replace(pattern, function (match) {
-            found.push(match.toLowerCase());
-            return 
-            maskChar.repeat(match.length);
+        const cleaned = text.replace(pattern, function (match, prefix, term) {
+            found.push(term.toLowerCase());
+            return prefix + maskChar.repeat(term.length);
         });
         const flagged = found.length > 0;
         const matches = dedupe(found);
@@ -152,4 +155,3 @@
         _mod.exports = api;
     }
 })();
-      
