@@ -150,7 +150,18 @@
         do_sample:          true,
       });
       var raw = (output && output[0] && output[0].generated_text) || '';
-      return extractReply(raw, prompt);
+      var reply = extractReply(raw, prompt);
+      // Full-Modus: anstößige Inhalte über Safetyfilter.ts entfernen,
+      // sofern der externe Filter geladen ist.
+      if (reply && typeof window !== 'undefined' &&
+          window.SafetyFilter && typeof window.SafetyFilter.filterModelOutput === 'function') {
+        try {
+          reply = window.SafetyFilter.filterModelOutput(reply);
+        } catch (filterErr) {
+          console.warn('[chatModel] SafetyFilter error:', filterErr);
+        }
+      }
+      return reply;
     } catch (err) {
       console.warn('[chatModel] Generation error:', err);
       return null;
