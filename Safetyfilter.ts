@@ -183,3 +183,14 @@ interface SafetyFilterApi {
   if (typeof window !== 'undefined') {
     (window as unknown as { SafetyFilter: SafetyFilterApi }).SafetyFilter = api;
   }
+
+ // CommonJS-Export für Tests (Jest / Node)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const _mod: any = typeof module !== 'undefined' ? module : null;
+  if (_mod && _mod.exports) {
+    _mod.exports = api;
+  }
+})();
+
+// Ambient-Deklaration, damit der TypeScript-Compiler ohne @types/node baut.
+declare const module: { exports: unknown } | undefined;
