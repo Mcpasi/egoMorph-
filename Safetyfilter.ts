@@ -83,3 +83,26 @@ interface SafetyFilterApi {
   function normalize(text: string): string {
     return (text || '').toLowerCase();
   }
+
+ function dedupe(values: string[]): string[] {
+    const seen: Record<string, true> = {};
+    const out: string[] = [];
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i];
+      if (!seen[v]) {
+        seen[v] = true;
+        out.push(v);
+      }
+    }
+    return out;
+  }
+
+  function getActiveTerms(extra?: string[]): string[] {
+    if (!extra || extra.length === 0) return BLOCKED_TERMS;
+    const merged: string[] = BLOCKED_TERMS.slice();
+    for (let i = 0; i < extra.length; i++) {
+      const t = (extra[i] || '').toLowerCase().trim();
+      if (t) merged.push(t);
+    }
+    return dedupe(merged);
+  }
