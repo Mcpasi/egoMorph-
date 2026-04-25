@@ -57,6 +57,9 @@ Alpha
     </script>
   <script src="vectorizeEmotion.js"></script>
   <script src="emotionModel.js"></script>
+  <!-- Safetyfilter.ts kompiliert zu Safetyfilter.js (siehe tsconfig.json: `npx tsc`).
+       Muss vor chatModel.js geladen werden, damit window.SafetyFilter verfügbar ist. -->
+  <script src="Safetyfilter.js"></script>
   <script src="chatModel.js"></script>
   <script src="ltmManager.js"></script>
  
