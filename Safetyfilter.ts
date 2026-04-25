@@ -65,3 +65,21 @@ interface SafetyFilterApi {
     // Sexualisierung / explizit (EN)
     'child porn', 'childporn', 'cp ', 'pedo', 'pedophile',
   ];
+
+  const DEFAULT_BLOCK_RESPONSE: string =
+    'Entschuldigung, diese Antwort wurde aus Sicherheitsgründen gefiltert.';
+
+  function escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function buildPattern(terms: string[]): RegExp {
+    // Phrasen (mit Leerzeichen) und Einzelwörter werden gemeinsam erkannt.
+    // \b funktioniert für lateinische Buchstaben + Umlaute via Unicode-Flag.
+    const escaped: string[] = terms.map(escapeRegex);
+    return new RegExp('(?<![\\p{L}])(' + escaped.join('|') + ')(?![\\p{L}])', 'giu');
+  }
+
+  function normalize(text: string): string {
+    return (text || '').toLowerCase();
+  }
