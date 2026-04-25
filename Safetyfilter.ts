@@ -53,3 +53,15 @@ interface SafetyFilterApi {
     // Gewalt / Drohung (DE)
     'umbringen', 'töten', 'erschießen', 'erstechen', 'vergewaltigen',
     'vergewaltigung', 'abschlachten', 'massakrieren',
+    // Sexualisierung / explizit (DE)
+    'kinderporno', 'kinderpornos', 'kinderpornographie', 'kinderpornografie',
+    'pädophil', 'paedophil', 'pädo', 'paedo',
+    // Beleidigungen / Hass (EN)
+    'asshole', 'assholes', 'bitch', 'bitches', 'cunt', 'cunts', 'whore',
+    'whores', 'slut', 'sluts', 'faggot', 'faggots', 'retard', 'retards',
+    'nigga', 'niggas',
+    // Gewalt / Drohung (EN)
+    'kill yourself', 'kys', 'rape', 'raping', 'molest', 'molesting',
+    // Sexualisierung / explizit (EN)
+    'child porn', 'childporn', 'cp ', 'pedo', 'pedophile',
+  ];
