@@ -126,4 +126,30 @@
         }
         try {
             if (typeof console !== 'undefined' && console.warn) {
+                console.warn('[SafetyFilter] Antwort maskiert. Treffer:', result.matches);
+            }
+        }
+        catch (_) { /* ignore */ }
+        return result.text;
+    }
+    function getBlockedTerms() {
+        return BLOCKED_TERMS.slice();
+    }
+    const api = {
+        contains: contains,
+        filter: filter,
+        filterModelOutput: filterModelOutput,
+        getBlockedTerms: getBlockedTerms,
+    };
+    // Browser-Registrierung
+    if (typeof window !== 'undefined') {
+        window.SafetyFilter = api;
+    }
+    // CommonJS-Export für Tests (Jest / Node)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const _mod = typeof module !== 'undefined' ? module : null;
+    if (_mod && _mod.exports) {
+        _mod.exports = api;
+    }
+})();
       
