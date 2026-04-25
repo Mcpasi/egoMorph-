@@ -93,4 +93,18 @@
         const cleaned = text.replace(pattern, function (match) {
             found.push(match.toLowerCase());
             return 
+            maskChar.repeat(match.length);
+        });
+        const flagged = found.length > 0;
+        const matches = dedupe(found);
+        if (flagged && blockOnMatch) {
+            return { text: null, flagged: true, matches: matches };
+        }
+        return { text: cleaned, flagged: flagged, matches: matches };
+    }
+    /**
+     * Convenience-Wrapper, der von chatModel.js im Full-Modus aufgerufen wird.
+     * Bei eindeutig anstößigem Inhalt wird die Antwort komplett ersetzt,
+     * damit nicht nur ein zerlöcherter Satz übrig bleibt.
+     */
       
