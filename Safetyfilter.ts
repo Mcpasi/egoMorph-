@@ -11,3 +11,21 @@
  * `window.SafetyFilter` und wird von chatModel.js automatisch genutzt,
  * sofern verfügbar.
  */
+
+interface SafetyFilterOptions {
+  /** Wenn true: bei Treffern komplette Antwort verwerfen (null zurückgeben). */
+  blockOnMatch?: boolean;
+  /** Maskierungszeichen für das Ersetzen einzelner Wörter. Default: '*'. */
+  maskChar?: string;
+  /** Zusätzliche, projekteigene Begriffe (lower-case). */
+  extraTerms?: string[];
+}
+
+interface SafetyFilterResult {
+  /** Die bereinigte Antwort, oder null wenn vollständig blockiert. */
+  text: string | null;
+  /** True, wenn mindestens ein Treffer gefunden wurde. */
+  flagged: boolean;
+  /** Liste der erkannten Begriffe (lower-case, dedupliziert). */
+  matches: string[];
+}
