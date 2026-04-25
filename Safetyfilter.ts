@@ -106,3 +106,18 @@ interface SafetyFilterApi {
     }
     return dedupe(merged);
   }
+
+ function contains(text: string, extraTerms?: string[]): boolean {
+    if (!text || typeof text !== 'string') return false;
+    const pattern = buildPattern(getActiveTerms(extraTerms));
+    return pattern.test(normalize(text));
+  }
+
+  function filter(text: string, options?: SafetyFilterOptions): SafetyFilterResult {
+    const opts: SafetyFilterOptions = options || {};
+    const maskChar: string = opts.maskChar && opts.maskChar.length > 0 ? opts.maskChar[0] : '*';
+    const blockOnMatch: boolean = opts.blockOnMatch === true;
+
+    if (!text || typeof text !== 'string') {
+      return { text: text || null, flagged: false, matches: [] };
+    }
