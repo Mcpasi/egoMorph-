@@ -121,3 +121,20 @@ interface SafetyFilterApi {
     if (!text || typeof text !== 'string') {
       return { text: text || null, flagged: false, matches: [] };
     }
+
+  const pattern = buildPattern(getActiveTerms(opts.extraTerms));
+    const found: string[] = [];
+
+    const cleaned: string = text.replace(pattern, function (match: string): string {
+      found.push(match.toLowerCase());
+      return maskChar.repeat(match.length);
+    });
+
+    const flagged: boolean = found.length > 0;
+    const matches: string[] = dedupe(found);
+
+    if (flagged && blockOnMatch) {
+      return { text: null, flagged: true, matches: matches };
+    }
+    return { text: cleaned, flagged: flagged, matches: matches };
+  }
