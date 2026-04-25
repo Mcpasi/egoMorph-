@@ -75,4 +75,22 @@
         }
         return dedupe(merged);
     }
+    function contains(text, extraTerms) {
+        if (!text || typeof text !== 'string')
+            return false;
+        const pattern = buildPattern(getActiveTerms(extraTerms));
+        return pattern.test(normalize(text));
+    }
+    function filter(text, options) {
+        const opts = options || {};
+        const maskChar = opts.maskChar && opts.maskChar.length > 0 ? opts.maskChar[0] : '*';
+        const blockOnMatch = opts.blockOnMatch === true;
+        if (!text || typeof text !== 'string') {
+            return { text: text || null, flagged: false, matches: [] };
+        }
+        const pattern = buildPattern(getActiveTerms(opts.extraTerms));
+        const found = [];
+        const cleaned = text.replace(pattern, function (match) {
+            found.push(match.toLowerCase());
+            return 
       
