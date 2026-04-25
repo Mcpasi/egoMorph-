@@ -75,16 +75,20 @@ interface SafetyFilterApi {
 
   function buildPattern(terms: string[]): RegExp {
     // Phrasen (mit Leerzeichen) und Einzelwörter werden gemeinsam erkannt.
-    // \b funktioniert für lateinische Buchstaben + Umlaute via Unicode-Flag.
-    const escaped: string[] = terms.map(escapeRegex);
-    return new RegExp('(?<![\\p{L}])(' + escaped.join('|') + ')(?![\\p{L}])', 'giu');
+    // Das führende Trennzeichen wird als Gruppe erfasst, damit kein Regex-
+    // Lookbehind nötig ist und der Filter auch in älteren Browsern läuft.
+    const escaped: string[] = terms
+      .slice()
+      .sort(function (a: string, b: string): number { return b.length - a.length; })
+      .map(escapeRegex);
+    return new RegExp('(^|[^\\p{L}])(' + escaped.join('|') + ')(?![\\p{L}])', 'giu');
   }
 
   function normalize(text: string): string {
     return (text || '').toLowerCase();
   }
 
- function dedupe(values: string[]): string[] {
+  function dedupe(values: string[]): string[] {
     const seen: Record<string, true> = {};
     const out: string[] = [];
     for (let i = 0; i < values.length; i++) {
@@ -107,7 +111,7 @@ interface SafetyFilterApi {
     return dedupe(merged);
   }
 
- function contains(text: string, extraTerms?: string[]): boolean {
+  function contains(text: string, extraTerms?: string[]): boolean {
     if (!text || typeof text !== 'string') return false;
     const pattern = buildPattern(getActiveTerms(extraTerms));
     return pattern.test(normalize(text));
@@ -122,12 +126,16 @@ interface SafetyFilterApi {
       return { text: text || null, flagged: false, matches: [] };
     }
 
-  const pattern = buildPattern(getActiveTerms(opts.extraTerms));
+    const pattern = buildPattern(getActiveTerms(opts.extraTerms));
     const found: string[] = [];
 
-    const cleaned: string = text.replace(pattern, function (match: string): string {
-      found.push(match.toLowerCase());
-      return maskChar.repeat(match.length);
+    const cleaned: string = text.replace(pattern, function (
+      match: string,
+      prefix: string,
+      term: string
+    ): string {
+      found.push(term.toLowerCase());
+      return prefix + maskChar.repeat(term.length);
     });
 
     const flagged: boolean = found.length > 0;
@@ -139,7 +147,7 @@ interface SafetyFilterApi {
     return { text: cleaned, flagged: flagged, matches: matches };
   }
 
- /**
+  /**
    * Convenience-Wrapper, der von chatModel.js im Full-Modus aufgerufen wird.
    * Bei eindeutig anstößigem Inhalt wird die Antwort komplett ersetzt,
    * damit nicht nur ein zerlöcherter Satz übrig bleibt.
@@ -160,7 +168,7 @@ interface SafetyFilterApi {
       return DEFAULT_BLOCK_RESPONSE;
     }
 
-  try {
+    try {
       if (typeof console !== 'undefined' && console.warn) {
         console.warn('[SafetyFilter] Antwort maskiert. Treffer:', result.matches);
       }
@@ -184,7 +192,7 @@ interface SafetyFilterApi {
     (window as unknown as { SafetyFilter: SafetyFilterApi }).SafetyFilter = api;
   }
 
- // CommonJS-Export für Tests (Jest / Node)
+  // CommonJS-Export für Tests (Jest / Node)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const _mod: any = typeof module !== 'undefined' ? module : null;
   if (_mod && _mod.exports) {
