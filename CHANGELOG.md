@@ -93,6 +93,7 @@ Emotion Point System 🎮
 - 4 Mods have been added, Lite, Standard, Full, API
 - Security filter has been added to filter explicit content in full mode
 - A Thinking mode has been added
+
 **For more information, see the readme**
 
 ### 🐞 fixes
