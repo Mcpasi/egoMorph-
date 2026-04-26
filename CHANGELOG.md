@@ -1,6 +1,5 @@
 # 📢 Changelog
 
-**Note: Versions 0.0.6.7 and later are now running under the Apache 2.0 license.**
 
 ## [0.0.5.0 Alpha] - 2025-09-30
 
@@ -83,3 +82,5 @@ Emotion Point System 🎮
 - Errors in the French language have been corrected
 - A bug that prevented the feedback system from being accessed has been fixed
 - A memory leak in the model has been fixed.
+
+**This is where the beta phase starts**
