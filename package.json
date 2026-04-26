@@ -1,0 +1,20 @@
+{
+  "name": "egomorph-pwa",
+  "version": "1.0.0",
+  "description": "EgoMorph PWA fuer PWABuilder APK/AAB Export.",
+  "main": "index.html",
+  "scripts": {
+    "build:safetyfilter": "tsc",
+    "pwa:validate": "node scripts/validate-pwa.js",
+    "serve": "npx http-server . -p 4173 -c-1",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,113 @@
+
+#egomorph-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    z-index: 2147483647; /* Maximaler Z-Index, damit es ÜBERALLEM liegt */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', Courier, monospace; /* Fallback Font */
+    color: white;
+    transition: opacity 0.8s ease-out;
+}
+
+/* Der Morphing-Effekt */
+.ego-morph-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 2rem;
+}
+
+.ego-shape {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #6d28d9, #2563eb);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    animation: ego-morph 6s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(109, 40, 217, 0.5);
+}
+
+/* Text Styling */
+.ego-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: 0.3rem;
+    text-transform: uppercase;
+    background: linear-gradient(to right, #fff, #a5b4fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 0;
+    opacity: 0;
+    animation: ego-fadeUp 0.8s forwards 0.3s;
+}
+
+.ego-version {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    border: 1px solid #374151;
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    animation: ego-fadeUp 0.8s forwards 0.5s;
+}
+
+.ego-desc {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    opacity: 0;
+    animation: ego-fadeUp 0.8s forwards 0.7s;
+}
+
+/* Ladebalken */
+.ego-loader {
+    width: 150px;
+    height: 2px;
+    background: #1f2937;
+    margin-top: 2rem;
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    animation: ego-fadeIn 1s forwards 1s;
+}
+
+.ego-progress {
+    height: 100%;
+    width: 0%;
+    background: #8b5cf6;
+    animation: ego-load 3.5s ease-in-out forwards;
+}
+
+/* Animation Keyframes */
+@keyframes ego-morph {
+    0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+    50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; transform: rotate(180deg); }
+    100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(360deg); }
+}
+
+@keyframes ego-fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ego-fadeIn { to { opacity: 1; } }
+
+@keyframes ego-load {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+/* Klasse zum Ausblenden */
+.ego-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
