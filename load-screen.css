@@ -61,8 +61,6 @@
 .ego-note {
     font-size: 1rem;
     color: red;
-    margin-top: 0.5rem;
-    padding: 2px 8px;
     opacity: 0;
     animation: ego-fadeUp 0.8s forwards 0.5s;
 }
