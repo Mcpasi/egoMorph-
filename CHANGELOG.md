@@ -92,7 +92,7 @@ Emotion Point System 🎮
 - Tensorflow.js was exchanged for Transformer.js
 - 4 Mods have been added, Lite, Standard, Full, API
 - Security filter has been added to filter explicit content in full mode
-- A Thinking mode has been added
+- The Thinking mode has been adapted to Transformer.js
 
 **For more information, see the readme**
 
