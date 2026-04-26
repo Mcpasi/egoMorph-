@@ -58,6 +58,16 @@
     opacity: 0;
     animation: ego-fadeUp 0.8s forwards 0.5s;
 }
+.ego-Warning {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    border: 1px solid #374151;
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    animation: ego-fadeUp 0.8s forwards 0.5s;
+}
 
 .ego-desc {
     color: #9ca3af;
