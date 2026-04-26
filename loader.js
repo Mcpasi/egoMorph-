@@ -17,7 +17,7 @@
         </div>
         <h1 class="ego-title">${CONFIG.title}</h1>
         <div class="ego-version">${CONFIG.version}</div>
-        <p class="ego-note">${CONFIG.note}</div>
+        <div class="ego-note">${CONFIG.note}</div>
         <p class="ego-desc">${CONFIG.description}</p>
         <div class="ego-loader">
             <div class="ego-progress"></div>
