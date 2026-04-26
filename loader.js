@@ -5,7 +5,7 @@
     const CONFIG = {
         title: "EGOMORPH",
         version: "v0.9.0.0-Beta Experimental",
-        warning: "check your answers, this is a Ki system.", 
+        note: "check your answers, this is a Ki system.", 
         description: "Initialisiere Systemkerne...",
         duration: 7000 // Dauer in Millisekunden (4 Sekunden)
     };
@@ -17,7 +17,7 @@
         </div>
         <h1 class="ego-title">${CONFIG.title}</h1>
         <div class="ego-version">${CONFIG.version}</div>
-        <p class="ego-warning">${CONFIG.warning}</div>
+        <p class="ego-note">${CONFIG.note}</div>
         <p class="ego-desc">${CONFIG.description}</p>
         <div class="ego-loader">
             <div class="ego-progress"></div>
