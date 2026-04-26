@@ -291,7 +291,7 @@ Alpha
             <label class="profile-radio">
               <input type="radio" name="resourceProfile" value="api"
                      onchange="window.egoProfile && window.egoProfile.set('api')">
-              <span><strong>API</strong> – Externe API (OpenAI / Ollama / LM Studio)
+              <span><strong>API</strong> – Externe API (OpenRouter / OpenAI / Ollama / LM Studio)
               <br><small style="color:var(--muted)">~0 MB lokal, braucht API-Endpunkt</small></span>
             </label>
           </div>
@@ -306,25 +306,29 @@ Alpha
         <div class="settings-section-body">
           <p class="settings-hint" style="margin-bottom:8px">
             Verbinde egoMorph mit einem externen LLM. Funktioniert mit OpenAI,
-            Ollama (<code>http://localhost:11434</code>), LM Studio, llama.cpp
-            und jedem OpenAI-kompatiblen Endpunkt.
+            OpenRouter, Ollama (<code>http://localhost:11434</code>), LM Studio,
+            llama.cpp und jedem OpenAI-kompatiblen Endpunkt.
+          </p>
+          <p class="settings-hint" style="margin-bottom:8px;color:#fa0">
+            Hinweis: API-Keys werden im Browser gespeichert. Für öffentliche Deployments ist
+            ein eigener Proxy sicherer als ein direkt eingetragener Key.
           </p>
           <div class="settings-field">
             <label for="egoApiUrlInput">API-URL</label>
             <input id="egoApiUrlInput" type="text"
-                   placeholder="z. B. http://localhost:11434 oder https://api.openai.com"
+                   placeholder="z. B. https://openrouter.ai/api/v1/chat/completions"
                    style="flex:1">
           </div>
           <div class="settings-field" style="margin-top:6px">
             <label for="egoApiKeyInput">API-Key</label>
             <input id="egoApiKeyInput" type="password"
-                   placeholder="(optional, für OpenAI etc.)"
+                   placeholder="OpenRouter/OpenAI Key oder leer bei lokalen Endpunkten"
                    style="flex:1">
           </div>
           <div class="settings-field" style="margin-top:6px">
             <label for="egoApiModelInput">Modell-Name</label>
             <input id="egoApiModelInput" type="text"
-                   placeholder="z. B. gpt-3.5-turbo, llama3, mistral"
+                   placeholder="z. B. openrouter/auto, openai/gpt-4o-mini, llama3"
                    style="flex:1">
           </div>
           <div class="settings-inline-actions" style="margin-top:8px">
@@ -351,6 +355,18 @@ Alpha
           <div style="margin-top:12px">
             <p class="settings-hint"><strong>Beispiel-Konfigurationen:</strong></p>
             <div class="settings-actions" style="margin-top:6px">
+              <button onclick="(function(){
+                var u=document.getElementById('egoApiUrlInput');
+                var m=document.getElementById('egoApiModelInput');
+                if(u)u.value='https://openrouter.ai/api/v1/chat/completions';
+                if(m)m.value='openrouter/auto';
+              })()">OpenRouter Auto</button>
+              <button onclick="(function(){
+                var u=document.getElementById('egoApiUrlInput');
+                var m=document.getElementById('egoApiModelInput');
+                if(u)u.value='https://openrouter.ai/api/v1/chat/completions';
+                if(m)m.value='openai/gpt-4o-mini';
+              })()">OpenRouter GPT</button>
               <button onclick="(function(){
                 var u=document.getElementById('egoApiUrlInput');
                 var m=document.getElementById('egoApiModelInput');

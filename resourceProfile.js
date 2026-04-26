@@ -68,6 +68,57 @@
     if (typeof model === 'string') _apiModel = model.trim();
     _save();
   }
+
+  function normalizeApiUrl(rawUrl) {
+    var url = (rawUrl || '').trim().replace(/\/+$/, '');
+    if (!url) return '';
+
+    if (/^https:\/\/openrouter\.ai$/i.test(url)) {
+      return 'https://openrouter.ai/api/v1/chat/completions';
+    }
+    if (/^https:\/\/openrouter\.ai\/api$/i.test(url)) {
+      return 'https://openrouter.ai/api/v1/chat/completions';
+    }
+    if (/^https:\/\/openrouter\.ai\/api\/v1$/i.test(url)) {
+      return 'https://openrouter.ai/api/v1/chat/completions';
+    }
+    if (/^https:\/\/openrouter\.ai\/api\/v1\/chat\/completions$/i.test(url)) {
+      return url;
+    }
+
+    if (/\/chat\/completions$/i.test(url)) return url;
+    if (/\/v1$/i.test(url)) return url + '/chat/completions';
+    return url + '/v1/chat/completions';
+  }
+
+  function isOpenRouterUrl(url) {
+    return /^https:\/\/openrouter\.ai(\/|$)/i.test(url || '');
+  }
+
+  function getAppOriginForApiHeader() {
+    try {
+      if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) {
+        return location.origin;
+      }
+    } catch (_) { /* ignore */ }
+    return 'https://egomorph.app';
+  }
+
+  function cleanApiMessages(messages) {
+    if (!Array.isArray(messages)) return [];
+    var out = [];
+    for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i] || {};
+      var role = msg.role === 'assistant' || msg.role === 'system' || msg.role === 'tool'
+        ? msg.role
+        : 'user';
+      var content = typeof msg.content === 'string'
+        ? msg.content
+        : String(msg.content || '');
+      if (content.trim()) out.push({ role: role, content: content });
+    }
+    return out;
+  }
   
   function needsTransformers() {
     return _profile === 'standard' || _profile === 'full';
@@ -145,23 +196,34 @@
     // ── External API calls ──────────────────────────────────────────────────
  
   /**
-   * Call an OpenAI-compatible /v1/chat/completions endpoint.
-   * Works with OpenAI, Ollama, LM Studio, llama.cpp server, etc.
+   * Call an OpenAI-compatible chat completions endpoint.
+   * Works with OpenRouter, OpenAI, Ollama, LM Studio, llama.cpp server, etc.
    */
-   async function apiChatCompletion(messages, maxTokens) {
+   async function apiChatCompletion(messages, maxTokens, options) {
     if (!_apiUrl) throw new Error('Keine API-URL konfiguriert');
-    var url = _apiUrl.replace(/\/+$/, '');
-    if (!/\/v1\//.test(url)) url += '/v1/chat/completions';
+    var opts = options || {};
+    var url = normalizeApiUrl(_apiUrl);
+    var openRouter = isOpenRouterUrl(url);
     
     var body = {
-      model: _apiModel || 'gpt-3.5-turbo',
-      messages: messages,
+      model: _apiModel || (openRouter ? 'openrouter/auto' : 'gpt-3.5-turbo'),
+      messages: cleanApiMessages(messages),
       max_tokens: maxTokens || 150,
-      temperature: 0.7
+      temperature: typeof opts.temperature === 'number' ? opts.temperature : 0.7
     };
+
+    if (opts.responseFormat) body.response_format = opts.responseFormat;
+    if (opts.provider) body.provider = opts.provider;
+    if (opts.route) body.route = opts.route;
+    if (opts.models) body.models = opts.models;
     
     var headers = { 'Content-Type': 'application/json' };
     if (_apiKey) headers['Authorization'] = 'Bearer ' + _apiKey;
+    if (openRouter) {
+      headers['HTTP-Referer'] = getAppOriginForApiHeader();
+      headers['X-OpenRouter-Title'] = 'EgoMorph';
+      headers['X-OpenRouter-Categories'] = 'productivity,education,utilities';
+    }
  
     var resp = await fetch(url, {
       method: 'POST',
@@ -177,7 +239,13 @@
     
     var data = await resp.json();
     if (data.choices && data.choices[0] && data.choices[0].message) {
-      return data.choices[0].message.content || '';
+      var content = data.choices[0].message.content;
+      if (Array.isArray(content)) {
+        return content.map(function (part) {
+          return typeof part === 'string' ? part : (part && part.text) || '';
+        }).join('');
+      }
+      return content || '';
     }
     return '';
   }
@@ -196,7 +264,10 @@
         },
         { role: 'user', content: text }
       ];
-      var reply = await apiChatCompletion(messages, 60);
+      var reply = await apiChatCompletion(messages, 80, {
+        temperature: 0.1,
+        responseFormat: { type: 'json_object' }
+      });
       // Extract JSON from reply
       var match = reply.match(/\{[^}]+\}/);
       if (match) {
@@ -261,7 +332,7 @@
       if (!isNaN(stored) && stored > 0) maxTokens = Math.min(stored, 300);
     } catch (_) { /* ignore */ }
     
-    var reply = await apiChatCompletion(messages, maxTokens);
+    var reply = await apiChatCompletion(messages, maxTokens, { temperature: 0.7 });
     return reply ? reply.trim() : null;
   }
   
