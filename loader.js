@@ -5,7 +5,7 @@
     const CONFIG = {
         title: "EGOMORPH",
         version: "v0.9.0.0-Beta Experimental",
-        Warning: "check your answers, this is a Ki system.", 
+        warning: "check your answers, this is a Ki system.", 
         description: "Initialisiere Systemkerne...",
         duration: 7000 // Dauer in Millisekunden (4 Sekunden)
     };
