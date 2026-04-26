@@ -58,7 +58,7 @@
     opacity: 0;
     animation: ego-fadeUp 0.8s forwards 0.5s;
 }
-.ego-Warning {
+.ego-note {
     font-size: 0.75rem;
     color: #6b7280;
     margin-top: 0.5rem;
