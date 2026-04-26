@@ -84,3 +84,17 @@ Emotion Point System 🎮
 - A memory leak in the model has been fixed.
 
 **This is where the beta phase starts**
+
+## [0.1.0.0 Beta Experimental] 
+
+### ⭐ New Features 
+
+- Tensorflow.js was exchanged for Transformer.js
+- 4 Mods have been added, Lite, Standard, Full, API
+- Security filter has been added to filter explicit content in full mode
+- A Thinking mode has been added
+**For more information, see the readme**
+
+### 🐞 fixes
+
+- Some bugs have been fixed
