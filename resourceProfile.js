@@ -307,7 +307,7 @@
       if (dominant) emotionStr = dominant;
     }
     
-    var sysPrompt = 'Du bist EgoMorph, ein emotionaler KI-Assistent. Antworte empathisch und auf Deutsch. Halte Antworten kurz (1-3 Sätze).';
+    var sysPrompt = 'Du bist EgoMorph, ein emotionaler KI-Assistent. Antworte empathisch und auf Deutsch. Halte Antworten kurz (1-3 Sätze). Wir haben das Jahr 2026, Du wurdes von CreatewithCode entwickelt,';
     if (emotionStr) sysPrompt += ' Aktuelle Emotion des Nutzers: ' + emotionStr + '.';
  
     var messages = [{ role: 'system', content: sysPrompt }];
