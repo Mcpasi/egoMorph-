@@ -3,6 +3,8 @@
 Eine emotionale KI fuer den Browser – erkennt Gefuehle, passt ihre Persoenlichkeit an, spricht, hoert zu und lernt aus deinem Feedback.
  
 **Live-Demo: https://mcpasi.github.io/egoMorph-/**
+
+Ausfuehrliche Projektdokumentation: [DOKUMENTATION.md](DOKUMENTATION.md)
  
 ---
  
