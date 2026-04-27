@@ -153,6 +153,7 @@ Alpha
     </form>
     <div id="response"></div>
     <div id="memory"></div>
+    <section id="egoWriterMount" aria-label="EgoMorph Writer"></section>
     <!-- Feedback section for user to indicate whether classification was correct -->
     <div id="emotionPointsDisplay" role="status" aria-live="polite">
       <div class="terminal-header" aria-hidden="true">
@@ -176,6 +177,7 @@ Alpha
     <!-- Settings toggle and panel -->
     <div id="toggleContainer" style="margin-top:10px; display:flex; gap:5px;">
       <button id="settingsToggle" aria-controls="settingsPanel" aria-expanded="false">⚙️ Einstellungen</button>
+      <button id="writerToggle" type="button" aria-controls="egoWriterPanel" aria-expanded="false">Writer</button>
       <!-- Info toggle sits next to the settings button.  Clicking it will reveal
            a panel containing information about EgoMorph.  A simple placeholder
            text is provided that can be replaced later. -->
@@ -3784,6 +3786,7 @@ async function modelPredictCategory(text) {
 })();
 </script>
 <script src="thinkingMode.js" defer></script>
+<script src="Writer.js" defer></script>
 <script>
 // LLM reply integration: wrap generateSmartReply so that when a
 // text-generation model is loaded and enabled, it replaces template replies
