@@ -21,6 +21,7 @@
     status: null,
     wordCount: null,
     charCount: null,
+    countText: null,
     toggle: null,
     autosaveTimer: null,
     busy: false
@@ -64,6 +65,22 @@
       updateAvailability();
       updateModeLabel();
     });
+    document.addEventListener('ego-language-change', function () {
+      updateTranslations();
+      updateAvailability();
+      updateModeLabel();
+    });
+  }
+
+  function t(key, fallback, replacements) {
+    var value = window.egoT ? window.egoT(key) : fallback;
+    if (!value || value === key) value = fallback || key;
+    if (replacements) {
+      for (var name in replacements) {
+        value = value.replace('{' + name + '}', replacements[name]);
+      }
+    }
+    return value;
   }
 
   function injectStyles() {
@@ -78,7 +95,7 @@
     state.root.innerHTML = [
       '<div id="egoWriterPanel" aria-live="polite">',
       '  <div class="writer-head">',
-      '    <h2 class="writer-title">EgoMorph Writer</h2>',
+      '    <h2 id="writerTitleText" class="writer-title">EgoMorph Writer</h2>',
       '    <span id="writerModeText" class="writer-mode"></span>',
       '  </div>',
       '  <div class="writer-body">',
@@ -94,7 +111,7 @@
       '      <button id="writerClearBtn" type="button">Leeren</button>',
       '    </div>',
       '    <div class="writer-footer">',
-      '      <span><strong id="writerWordCount">0</strong> Woerter · <strong id="writerCharCount">0</strong> Zeichen</span>',
+      '      <span><strong id="writerWordCount">0</strong> <span id="writerWordsLabel">Woerter</span> · <strong id="writerCharCount">0</strong> <span id="writerCharsLabel">Zeichen</span></span>',
       '      <span id="writerStatus" class="writer-status">bereit</span>',
       '    </div>',
       '  </div>',
@@ -107,8 +124,37 @@
     state.status = document.getElementById('writerStatus');
     state.wordCount = document.getElementById('writerWordCount');
     state.charCount = document.getElementById('writerCharCount');
+    state.countText = document.getElementById('writerWordsLabel');
     state.toggle = document.getElementById('writerToggle');
+    updateTranslations();
     updateModeLabel();
+  }
+
+  function updateTranslations() {
+    setText('writerTitleText', 'writerTitle', 'EgoMorph Writer');
+    setText('writerLockNotice', 'writerLockNotice', 'Der Writer-Agent arbeitet nur im Full- oder API-Modus. Lokales Schreiben, Speichern, Export und Wortzaehlung bleiben verfuegbar.');
+    setText('writerSaveBtn', 'writerSaveBtn', 'Speichern');
+    setText('writerExportBtn', 'writerExportBtn', 'Export als Text');
+    setText('writerContinueBtn', 'writerContinueBtn', 'Weiterschreiben');
+    setText('writerImproveBtn', 'writerImproveBtn', 'Verbessern');
+    setText('writerSummarizeBtn', 'writerSummarizeBtn', 'Zusammenfassen');
+    setText('writerClearBtn', 'writerClearBtn', 'Leeren');
+    setText('writerWordsLabel', 'writerWordsLabel', 'Woerter');
+    setText('writerCharsLabel', 'writerCharsLabel', 'Zeichen');
+    if (state.titleInput) state.titleInput.placeholder = t('writerTitlePlaceholder', 'Dokumenttitel');
+    if (state.editor) state.editor.placeholder = t('writerEditorPlaceholder', 'Schreibe hier deinen Text...');
+    if (state.status && isReadyStatus(state.status.textContent)) {
+      state.status.textContent = t('writerReadyStatus', 'bereit');
+    }
+  }
+
+  function setText(id, key, fallback) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = t(key, fallback);
+  }
+
+  function isReadyStatus(text) {
+    return ['bereit', 'ready', 'prêt'].indexOf(text) !== -1;
   }
 
   function bindEvents() {
@@ -174,8 +220,8 @@
     for (var i = 0; i < buttons.length; i++) {
       buttons[i].disabled = !allowed || state.busy;
       buttons[i].title = allowed
-        ? 'Writer-Agent ausfuehren'
-        : 'Nur im Full- oder API-Modus verfuegbar';
+        ? t('writerAgentRunTitle', 'Writer-Agent ausfuehren')
+        : t('writerAgentLockedTitle', 'Nur im Full- oder API-Modus verfuegbar');
     }
   }
 
@@ -183,9 +229,9 @@
     var el = document.getElementById('writerModeText');
     if (!el) return;
     var profile = getProfile();
-    if (profile === 'api') el.textContent = 'API-Agent aktiv';
-    else if (profile === 'full') el.textContent = 'Full-Agent aktiv';
-    else el.textContent = 'Agent gesperrt: ' + profile;
+    if (profile === 'api') el.textContent = t('writerApiModeActive', 'API-Agent aktiv');
+    else if (profile === 'full') el.textContent = t('writerFullModeActive', 'Full-Agent aktiv');
+    else el.textContent = t('writerAgentLockedMode', 'Agent gesperrt: {profile}', { profile: profile });
   }
 
   function restoreDocument() {
@@ -199,9 +245,9 @@
     try {
       localStorage.setItem(TITLE_KEY, state.titleInput.value || '');
       localStorage.setItem(STORAGE_KEY, state.editor.value || '');
-      if (showStatus) setStatus('Gespeichert', 'ok');
+      if (showStatus) setStatus(t('writerSavedStatus', 'Gespeichert'), 'ok');
     } catch (err) {
-      setStatus('Speichern fehlgeschlagen: ' + shortError(err), 'error');
+      setStatus(t('writerSaveFailedPrefix', 'Speichern fehlgeschlagen: ') + shortError(err), 'error');
     }
   }
 
@@ -209,7 +255,7 @@
     clearTimeout(state.autosaveTimer);
     state.autosaveTimer = setTimeout(function () {
       saveDocument(false);
-      setStatus('Automatisch gespeichert', 'ok');
+      setStatus(t('writerAutosavedStatus', 'Automatisch gespeichert'), 'ok');
     }, AUTOSAVE_DELAY);
   }
 
@@ -225,11 +271,11 @@
     link.click();
     link.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-    setStatus('Text exportiert', 'ok');
+    setStatus(t('writerExportedStatus', 'Text exportiert'), 'ok');
   }
 
   function clearEditor() {
-    if (state.editor.value && !confirm('Editor wirklich leeren?')) return;
+    if (state.editor.value && !confirm(t('writerClearConfirm', 'Editor wirklich leeren?'))) return;
     state.editor.value = '';
     updateCounts();
     saveDocument(true);
@@ -246,7 +292,7 @@
 
   async function runAgentAction(action) {
     if (!canUseAgent()) {
-      setStatus('Agent nur im Full- oder API-Modus verfuegbar', 'error');
+      setStatus(t('writerAgentOnlyStatus', 'Agent nur im Full- oder API-Modus verfuegbar'), 'error');
       updateAvailability();
       return;
     }
@@ -254,21 +300,21 @@
 
     var currentText = state.editor.value || '';
     if (!currentText.trim() && action !== 'continue') {
-      setStatus('Der Editor ist leer', 'error');
+      setStatus(t('writerEmptyStatus', 'Der Editor ist leer'), 'error');
       return;
     }
 
     state.busy = true;
     updateAvailability();
-    setStatus('Agent arbeitet...', '');
+    setStatus(t('writerWorkingStatus', 'Agent arbeitet...'), '');
 
     try {
       var output = await askWriterAgent(action, currentText, state.titleInput.value || '');
-      if (!output || !output.trim()) throw new Error('Leere Agent-Antwort');
+      if (!output || !output.trim()) throw new Error(t('writerEmptyAgentResponse', 'Leere Agent-Antwort'));
       applyAgentOutput(action, output.trim());
       updateCounts();
       saveDocument(false);
-      setStatus('Agent-Aktion abgeschlossen', 'ok');
+      setStatus(t('writerDoneStatus', 'Agent-Aktion abgeschlossen'), 'ok');
     } catch (err) {
       setStatus(shortError(err), 'error');
     } finally {
@@ -292,12 +338,12 @@
 
     if (profile === 'api') {
       if (!window.egoProfile || typeof window.egoProfile.apiChatCompletion !== 'function') {
-        throw new Error('API-Modus ist nicht bereit');
+        throw new Error(t('writerApiNotReady', 'API-Modus ist nicht bereit'));
       }
       return window.egoProfile.apiChatCompletion([
         {
           role: 'system',
-          content: 'Du bist EgoMorph Writer, ein praeziser deutscher Schreibagent. Antworte nur mit dem gewuenschten Text, ohne Vorrede.'
+          content: t('writerSystemPrompt', 'Du bist EgoMorph Writer, ein praeziser deutscher Schreibagent. Antworte nur mit dem gewuenschten Text, ohne Vorrede.')
         },
         { role: 'user', content: prompt }
       ], 700, { temperature: 0.55 });
@@ -305,36 +351,32 @@
 
     if (profile === 'full') {
       if (typeof window.isLLMEnabled !== 'function' || !window.isLLMEnabled()) {
-        throw new Error('Lokales LLM ist im Full-Modus deaktiviert');
+        throw new Error(t('writerLocalLlmDisabled', 'Lokales LLM ist im Full-Modus deaktiviert'));
       }
       if (typeof window.getChatModelStatus !== 'function' || window.getChatModelStatus() !== 'ready') {
-        throw new Error('Lokales LLM ist noch nicht bereit');
+        throw new Error(t('writerLocalLlmNotReady', 'Lokales LLM ist noch nicht bereit'));
       }
       if (typeof window.generateWithLLM !== 'function') {
-        throw new Error('Lokale LLM-Funktion fehlt');
+        throw new Error(t('writerLocalLlmMissing', 'Lokale LLM-Funktion fehlt'));
       }
       return window.generateWithLLM(prompt, { freude: 0.34, wut: 0.33, traurigkeit: 0.33 });
     }
 
-    throw new Error('Writer-Agent nur in Full oder API nutzbar');
+    throw new Error(t('writerAgentUnavailable', 'Writer-Agent nur in Full oder API nutzbar'));
   }
 
   function buildPrompt(action, text, title) {
-    var heading = title ? 'Titel: ' + title + '\n' : '';
+    var heading = title ? t('writerPromptTitle', 'Titel: {title}', { title: title }) + '\n' : '';
     if (action === 'continue') {
-      return heading +
-        'Schreibe diesen Text sinnvoll weiter. Behalte Stil, Sprache und Perspektive bei. Gib nur die Fortsetzung aus.\n\nText:\n' +
-        (text || '[Noch kein Text vorhanden]');
+      return heading + t('writerPromptContinue', 'Schreibe diesen Text sinnvoll weiter. Behalte Stil, Sprache und Perspektive bei. Gib nur die Fortsetzung aus.\n\nText:\n{text}', {
+        text: text || t('writerNoTextYet', '[Noch kein Text vorhanden]')
+      });
     }
     if (action === 'improve') {
-      return heading +
-        'Verbessere den folgenden Text sprachlich, strukturell und in der Klarheit. Erhalte Inhalt und Sprache. Gib nur die verbesserte Fassung aus.\n\nText:\n' +
-        text;
+      return heading + t('writerPromptImprove', 'Verbessere den folgenden Text sprachlich, strukturell und in der Klarheit. Erhalte Inhalt und Sprache. Gib nur die verbesserte Fassung aus.\n\nText:\n{text}', { text: text });
     }
     if (action === 'summarize') {
-      return heading +
-        'Fasse den folgenden Text kompakt und praezise zusammen. Gib nur die Zusammenfassung aus.\n\nText:\n' +
-        text;
+      return heading + t('writerPromptSummarize', 'Fasse den folgenden Text kompakt und praezise zusammen. Gib nur die Zusammenfassung aus.\n\nText:\n{text}', { text: text });
     }
     return heading + text;
   }
@@ -347,7 +389,7 @@
   }
 
   function shortError(err) {
-    var msg = err && err.message ? err.message : String(err || 'Unbekannter Fehler');
+    var msg = err && err.message ? err.message : String(err || t('writerUnknownError', 'Unbekannter Fehler'));
     return msg.length > 120 ? msg.slice(0, 117) + '...' : msg;
   }
 
