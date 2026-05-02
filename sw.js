@@ -1,6 +1,6 @@
 // Service Worker fuer PWABuilder/Android: cached die Shell, liefert
 // Navigationen offline aus und aktualisiert alte Caches kontrolliert.
-const CACHE_NAME = 'egomorph-pwa-v3';
+const CACHE_NAME = 'egomorph-pwa-v4';
 const URLS_TO_CACHE = [
   './',
   'index.html',
