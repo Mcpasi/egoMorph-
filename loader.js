@@ -4,7 +4,7 @@
     // 1. Konfiguration
     const CONFIG = {
         title: "EGOMORPH",
-        version: "v0.0.8.0-Alpha",
+        version: "v0.1.0.0-Beta",
         description: "Initialisiere Systemkerne...",
         duration: 7000 // Dauer in Millisekunden (4 Sekunden)
     };
