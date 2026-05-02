@@ -65,6 +65,9 @@ Alpha
   <script src="Safetyfilter.js"></script>
   <script src="chatModel.js"></script>
   <script src="ltmManager.js"></script>
+  <script src="translations/de.js"></script>
+  <script src="translations/en.js"></script>
+  <script src="translations/fr.js"></script>
  
   <!-- __RESPONSIVE_CSS__ -->
 
@@ -132,7 +135,7 @@ Alpha
     <!-- Modal overlay shown on first load.  It introduces the user to the app. -->
   <div id="welcomeModal" class="modal">
     <div class="modal-content">
-      <p>Willkommen bei EgoMorph! Diese KI erkennt Emotionen aus deinen Wörtern.</p>
+      <p id="welcomeText">Willkommen bei EgoMorph! Diese KI erkennt Emotionen aus deinen Wörtern.</p>
       <button id="closeModalBtn">OK</button>
     </div>
   </div>
@@ -264,9 +267,9 @@ Alpha
         </div>
       </details>
       <details id="resourceProfileSettings" class="settings-section" open>
-        <summary>Ressourcen-Profil</summary>
+        <summary id="resourceProfileSummary">Ressourcen-Profil</summary>
         <div class="settings-section-body">
-          <p class="settings-hint" style="margin-bottom:10px">
+          <p id="resourceProfileIntro" class="settings-hint" style="margin-bottom:10px">
             Wähle ein Profil passend zu deiner Hardware. Im <strong>Lite</strong>-Modus
             läuft egoMorph ohne ML-Modelle – ideal für schwache Geräte oder Hosting
             ohne GPU.
@@ -275,60 +278,60 @@ Alpha
             <label class="profile-radio">
               <input type="radio" name="resourceProfile" value="lite"
                      onchange="window.egoProfile && window.egoProfile.set('lite')">
-              <span><strong>Lite</strong> – Kein ML, nur Keywords &amp; Templates
-              <br><small style="color:var(--muted)">~0 MB RAM, sofort bereit, kein Download</small></span>
+              <span><strong>Lite</strong> <span id="resourceProfileLiteText">– Kein ML, nur Keywords &amp; Templates</span>
+              <br><small id="resourceProfileLiteMeta" style="color:var(--muted)">~0 MB RAM, sofort bereit, kein Download</small></span>
               </label>
             <label class="profile-radio">
               <input type="radio" name="resourceProfile" value="standard"
                      onchange="window.egoProfile && window.egoProfile.set('standard')">
-              <span><strong>Standard</strong> – Emotions-Modell, Template-Antworten
-              <br><small style="color:var(--muted)">~250–440 MB, gute Emotionserkennung</small></span>
+              <span><strong>Standard</strong> <span id="resourceProfileStandardText">– Emotions-Modell, Template-Antworten</span>
+              <br><small id="resourceProfileStandardMeta" style="color:var(--muted)">~250–440 MB, gute Emotionserkennung</small></span>
             </label>
             <label class="profile-radio">
               <input type="radio" name="resourceProfile" value="full"
                      onchange="window.egoProfile && window.egoProfile.set('full')">
-              <span><strong>Voll</strong> – Emotions-Modell + lokales LLM
-              <br><small style="color:var(--muted)">~500–1000 MB, beste Qualität, langsam auf schwacher Hardware</small></span>
+              <span><strong id="resourceProfileFullName">Voll</strong> <span id="resourceProfileFullText">– Emotions-Modell + lokales LLM</span>
+              <br><small id="resourceProfileFullMeta" style="color:var(--muted)">~500–1000 MB, beste Qualität, langsam auf schwacher Hardware</small></span>
             </label>
             <label class="profile-radio">
               <input type="radio" name="resourceProfile" value="api"
                      onchange="window.egoProfile && window.egoProfile.set('api')">
-              <span><strong>API</strong> – Externe API (OpenRouter / OpenAI / Ollama / LM Studio)
-              <br><small style="color:var(--muted)">~0 MB lokal, braucht API-Endpunkt</small></span>
+              <span><strong>API</strong> <span id="resourceProfileApiText">– Externe API (OpenRouter / OpenAI / Ollama / LM Studio)</span>
+              <br><small id="resourceProfileApiMeta" style="color:var(--muted)">~0 MB lokal, braucht API-Endpunkt</small></span>
             </label>
           </div>
-          <p class="settings-hint" style="margin-top:8px;color:#fa0">
+          <p id="resourceProfileReloadHint" class="settings-hint" style="margin-top:8px;color:#fa0">
             Profiländerung wird nach Neuladen der Seite wirksam.
           </p>
         </div>
       </details>
  
       <details id="apiSettings" class="settings-section" style="display:none">
-        <summary>API-Einstellungen</summary>
+        <summary id="apiSettingsSummary">API-Einstellungen</summary>
         <div class="settings-section-body">
-          <p class="settings-hint" style="margin-bottom:8px">
+          <p id="apiSettingsIntro" class="settings-hint" style="margin-bottom:8px">
             Verbinde egoMorph mit einem externen LLM. Funktioniert mit OpenAI,
             OpenRouter, Ollama (<code>http://localhost:11434</code>), LM Studio,
             llama.cpp und jedem OpenAI-kompatiblen Endpunkt.
           </p>
-          <p class="settings-hint" style="margin-bottom:8px;color:#fa0">
+          <p id="apiSettingsWarning" class="settings-hint" style="margin-bottom:8px;color:#fa0">
             Hinweis: API-Keys werden im Browser gespeichert. Für öffentliche Deployments ist
             ein eigener Proxy sicherer als ein direkt eingetragener Key.
           </p>
           <div class="settings-field">
-            <label for="egoApiUrlInput">API-URL</label>
+            <label id="apiUrlLabel" for="egoApiUrlInput">API-URL</label>
             <input id="egoApiUrlInput" type="text"
                    placeholder="z. B. https://openrouter.ai/api/v1/chat/completions"
                    style="flex:1">
           </div>
           <div class="settings-field" style="margin-top:6px">
-            <label for="egoApiKeyInput">API-Key</label>
+            <label id="apiKeyLabel" for="egoApiKeyInput">API-Key</label>
             <input id="egoApiKeyInput" type="password"
                    placeholder="OpenRouter/OpenAI Key oder leer bei lokalen Endpunkten"
                    style="flex:1">
           </div>
           <div class="settings-field" style="margin-top:6px">
-            <label for="egoApiModelInput">Modell-Name</label>
+            <label id="apiModelLabel" for="egoApiModelInput">Modell-Name</label>
             <input id="egoApiModelInput" type="text"
                    placeholder="z. B. openrouter/auto, openai/gpt-4o-mini, llama3"
                    style="flex:1">
@@ -342,20 +345,20 @@ Alpha
                 window.egoProfile.setApiConfig(u?u.value:'',k?k.value:'',m?m.value:'');
               }
               var s=document.getElementById('apiStatusText');
-              if(s){s.textContent='Gespeichert';s.style.color='#6f6';}
-            })()">Speichern</button>
+              if(s){s.textContent=window.egoT ? window.egoT('apiSavedStatus') : 'Gespeichert';s.style.color='#6f6';}
+            })()" id="apiSaveBtn">Speichern</button>
             <button onclick="(function(){
               var s=document.getElementById('apiStatusText');
-              if(s){s.textContent='Teste…';s.style.color='#aaa';}
+              if(s){s.textContent=window.egoT ? window.egoT('apiTestingStatus') : 'Teste...';s.style.color='#aaa';}
               if(!window.egoProfile){return;}
               window.egoProfile.apiChatCompletion([{role:'user',content:'Hallo'}],10)
-                .then(function(){if(s){s.textContent='Verbindung OK';s.style.color='#6f6';}})
-                .catch(function(e){if(s){s.textContent='Fehler: '+String(e).slice(0,80);s.style.color='#f66';}});
-            })()">Verbindung testen</button>
+                .then(function(){if(s){s.textContent=window.egoT ? window.egoT('apiConnectionOkStatus') : 'Verbindung OK';s.style.color='#6f6';}})
+                .catch(function(e){if(s){s.textContent=(window.egoT ? window.egoT('apiErrorStatusPrefix') : 'Fehler: ')+String(e).slice(0,80);s.style.color='#f66';}});
+            })()" id="apiTestBtn">Verbindung testen</button>
             <span id="apiStatusText" class="settings-note" style="color:#aaa"></span>
           </div>
           <div style="margin-top:12px">
-            <p class="settings-hint"><strong>Beispiel-Konfigurationen:</strong></p>
+            <p class="settings-hint"><strong id="apiExamplesTitle">Beispiel-Konfigurationen:</strong></p>
             <div class="settings-actions" style="margin-top:6px">
               <button onclick="(function(){
                 var u=document.getElementById('egoApiUrlInput');
@@ -406,12 +409,12 @@ Alpha
             <button id="reloadModelBtn" onclick="reloadEmotionModel()">Modell laden</button>
             <span id="modelStatusText" class="settings-note" style="color:#aaa">Lade…</span>
           </div>
-          <p class="settings-hint">
+          <p id="modelSettingsHint" class="settings-hint">
             <code>text-classification</code>-Modell für Emotionserkennung (Freude / Wut / Traurigkeit).
             Standard: <code>Xenova/bert-base-multilingual-uncased-sentiment</code>
           </p>
           <div style="margin-top:8px">
-            <p class="settings-hint"><strong>Leichte Modelle (weniger RAM):</strong></p>
+            <p class="settings-hint"><strong id="lightEmotionModelsTitle">Leichte Modelle (weniger RAM):</strong></p>
             <div class="settings-actions" style="margin-top:4px">
               <button onclick="document.getElementById('customModelId').value='Xenova/distilbert-base-uncased-finetuned-sst-2-english'"
                 title="~250 MB – schneller, weniger RAM">DistilBERT (~250 MB)</button>
@@ -426,35 +429,35 @@ Alpha
         <summary id="chatModelSettingsSummary">Chat-Modell (LLM)</summary>
         <div class="settings-section-body">
           <div class="settings-field">
-            <label for="customChatModelId">Hugging&nbsp;Face&nbsp;Model&nbsp;ID</label>
+            <label id="chatModelIdLabel" for="customChatModelId">Hugging&nbsp;Face&nbsp;Model&nbsp;ID</label>
             <input id="customChatModelId" type="text"
                    placeholder="z.&nbsp;B. Xenova/gpt2"
                   style="flex:1">
           </div>
           <div class="settings-inline-actions">
-            <button onclick="reloadChatModel()">Modell laden</button>
+            <button id="reloadChatModelBtn" onclick="reloadChatModel()">Modell laden</button>
             <span id="chatModelStatusText" class="settings-note" style="color:#aaa">Kein Modell geladen</span>
           </div>
           <div class="settings-field" style="margin-top:10px">
-            <label for="llmMaxTokensInput">Max.&nbsp;Token</label> 
+            <label id="llmMaxTokensLabel" for="llmMaxTokensInput">Max.&nbsp;Token</label> 
             <input id="llmMaxTokensInput" type="number" min="20" max="300" value="80"
                    style="width:80px"
                    onchange="saveLLMMaxTokens(this.value)">
           </div>
           <div class="settings-field" style="margin-top:6px">
-            <label for="llmEnabledToggle">LLM-Antworten&nbsp;aktivieren</label>
+            <label id="llmEnabledLabel" for="llmEnabledToggle">LLM-Antworten&nbsp;aktivieren</label>
             <input id="llmEnabledToggle" type="checkbox"
                    style="width:auto;margin-left:8px"
                    onchange="setLLMEnabled(this.checked)">
           </div>
-          <p class="settings-hint">
+          <p id="chatModelSettingsHint" class="settings-hint">
             <code>text-generation</code>-Modell für autonome Antworten (z.&nbsp;B.
             <code>Xenova/gpt2</code>).
             Wenn aktiviert, ersetzt das LLM die Template-Antworten.
             Größere Modelle = bessere Qualität, aber längere Ladezeit.
             </p>
           <div style="margin-top:8px">
-            <p class="settings-hint"><strong>Leichte Modelle:</strong></p>
+            <p class="settings-hint"><strong id="lightChatModelsTitle">Leichte Modelle:</strong></p>
             <div class="settings-actions" style="margin-top:4px">
               <button onclick="document.getElementById('customChatModelId').value='Xenova/distilgpt2'"
                 title="~200 MB – sehr klein, schnell">DistilGPT-2 (~200 MB)</button>
@@ -499,7 +502,7 @@ Alpha
             <select id="languageSelect">
               <option value="de">Deutsch</option>
               <option value="en">English</option>
-              <option value="fr">French</option>
+              <option value="fr">Français</option>
             </select>
           </div>
         </div>
@@ -605,6 +608,15 @@ Alpha
     } else {
       speechButton.style.display = 'none';
     }
+    function updateSpeechRecognitionLanguage(lang) {
+      if (!recognition) return;
+      const speechLanguages = {
+        de: 'de-DE',
+        en: 'en-US',
+        fr: 'fr-FR'
+      };
+      recognition.lang = speechLanguages[lang] || speechLanguages.de;
+    }
 
     // Emotional state ranges between 0 and 100.  The dominant emotion
     // controls colour and scale.  Surprise decays each frame.
@@ -631,6 +643,7 @@ Alpha
     let conversation = [];
     const EMOTION_POINTS_KEY = 'egoEmotionPoints';
     let emotionPoints = 0;
+    let userTrainingCount = 0;
     // Escape HTML to prevent injection in conversation history.
     function escapeHTML(str) {
       return str
@@ -1107,303 +1120,37 @@ Alpha
     // here so it executes during script evaluation.
     loadCustomResponsesIntoCategories();
     // === Multilingual and feedback enhancements ===
-    
+    const egoLocales = window.EgoMorphLocales || {};
     translations = {
-      de: {
-        placeholder: 'Sag etwas...',
-        sendButton: 'Senden',
-        speechTitle: 'Spracheingabe starten',
-        yes: 'Ja',
-        no: 'Nein',
-        correctRecognition: 'War das korrekt erkannt?',
-        selectCorrectEmotion: 'Bitte wähle die richtige Emotion:',
-        confirm: 'Bestätigen',
-        thankYouLearned: 'Danke! Ich habe gelernt.',
-        feedbackPrompt: 'Was habe ich falsch verstanden?',
-        errorConfusion: (c, p) => `Ich verwechsele oft${c} mit ${p}. Vielen Dank für deine hilfe`,
-        improvedMessage: 'I misjudged this sentence the first time. Now I recognize it better!',
-        emotionalFeedback: 'Ich merke, dass ich dich oft missverstehe… bitte gib mir noch eine Chance.',
-        statsNoData: 'Vorhersage-Statistik: keine Daten',
-        statsPrefix: 'Vorhersage-Statistik: ',
-        statsCorrect: 'richtig',
-        statsWrong: 'falsch',
-        learnedExamples: 'Gelernte Beispiele: ',
-        emotionPointsLabel: 'Emotionspunkte',
-        settingsBtn: '⚙️ Einstellungen',
-        infoBtn: 'ℹ️ Info',
-        clearChatBtn: 'Chatverlauf löschen',
-        downloadModelBtn: 'Modell herunterladen',
-        setDefaultEmotionBtn: 'Festlegen',
-        defaultEmotionLabel: 'Standard Emotion:',
-        choose: 'Wählen…',
-        customResponseLabel: 'Eigene Antwort für Emotion:',
-        customResponsePlaceholder: 'Eigene Antwort…',
-        addCustomResponseBtn: 'Antwort hinzufügen',
-        languageLabel: 'Sprache:',
-        languageOptions: { de:'Deutsch', en:'English' },
-        settingsTitle: 'Einstellungen',
-        settingsIntro: 'Passe EgoMorph mit wenigen Klicks an – von schnellen Aktionen bis zur persönlichen Ansprache.',
-        quickActionsTitle: 'Schnellaktionen',
-        quickActionsHint: 'Steuere Verlauf, Stimme und gespeicherte Daten direkt von hier.',
-        ltmExportBtn: 'Speichern',
-        ltmClearBtn: 'Löschen',
-        defaultSectionTitle: 'Standardwerte',
-        defaultSectionHint: 'Diese Auswahl bestimmt den Ausgangston der Unterhaltung.',
-        personalSectionTitle: 'Persönliche Ansprache',
-        userNameLabel: 'Dein Name',
-        userNamePlaceholder: 'z. B. Pascal',
-        saveUserNameBtn: 'Speichern',
-        clearUserNameBtn: 'Löschen',
-        clearUserNameTitle: 'Name entfernen',
-        personalSectionHint: 'EgoMorph spricht dich in Antworten mit diesem Namen an.',
-        customSectionTitle: 'Eigene Antworten',
-        customSectionDescription: 'Ergänze individuelle Reaktionen für bestimmte Emotionen.',
-        appearanceSectionTitle: 'Erscheinung',
-        shapeLabel: 'Form',
-        shapeOptions: { circle: 'Kreis', square: 'Viereck', triangle: 'Dreieck' },
-        pupilLabel: 'Pupillenfarbe',
-        pupilOptions: { black: 'Schwarz', blue: 'Blau', yellow: 'Gelb', green: 'Grün' },
-        applyAppearanceBtn: 'Übernehmen',
-        languageSectionTitle: 'Sprache',
-        savedNameTemplate: '(gespeichert: {name})',
-        empathyHighPrefix: 'Ich verstehe dich. ',
-        lowTrustSuffix: ' Bist du sicher?',
-        emotionComments: {
-          freude: 'Du klingst fröhlich',
-          wut: 'Es klingt, als wärst du wütend',
-          traurigkeit: 'Ich spüre Traurigkeit in deinen Worten'
-        },
-        emotionSummarySingle: 'Ich nehme vor allem {emotion} wahr.',
-        emotionSummaryPair: 'Ich nehme {primary} und auch {secondary} wahr.',
-        emotionLabels: {
-          freude: 'Freude',
-          wut: 'Wut',
-          traurigkeit: 'Traurigkeit'
-        },
-        questionIntros: {
-          why: 'Du fragst nach dem Warum – lass uns das gemeinsam beleuchten.',
-          how: 'Ich überlege mit dir, wie das gelingen kann.',
-          what: 'Ich schaue, was dir dabei helfen könnte.',
-          when: 'Wir können auch über das richtige Timing sprechen.',
-          where: 'Lass uns den passenden Rahmen finden.',
-          general: 'Ich denke laut mit dir, damit wir eine Antwort finden.'
-        },
-        memoryRecallTemplate: 'Ich erinnere mich daran, dass du einmal „{memory}“ erwähnt hast.',
-        topicRecallTemplate: 'Das knüpft an {topic} an, was du vorhin erwähnt hast.',
-        mentionsObject: 'Du erwähnst {object}',
-        defaultEmotionOptions: {
-          freude:'Freude',
-          wut:'Wut',
-          traurigkeit:'Traurigkeit',
-          angst:'Angst',
-          vertrauen:'Vertrauen',
-          ueberraschung:'Überraschung'
-        },
-        infoText: 'EgoMorph ist ein interaktives Projekt, das mit Liebe und Neugier auf die Erforschung von Emotionen und maschinellem Lernen entstanden ist.Datenschutz:<br>Egomorph Speichert deinen Namen und deine Unterhaltungen,Nur lokal auf deinem Gerät. ',
-        memoryPrefix: 'Ich erinnere mich an:',
-        youPrefix: 'Du:',
-        alternativeBtn: 'Diese Antwort wäre besser gewesen.',
-        voiceActivate: 'Stimme aktivieren',
-        voiceDeactivate: 'Stimme deaktivieren'
-      },
-      en: {
-        placeholder: 'Say something...',
-        sendButton: 'Send',
-        speechTitle: 'Start voice input',
-        yes: 'Yes',
-        no: 'No',
-        correctRecognition: 'Was that recognized correctly?',
-        selectCorrectEmotion: 'Please select the correct emotion:',
-        confirm: 'Confirm',
-        thankYouLearned: "Thank you! I've learned.",
-        feedbackPrompt: 'What did I misunderstand?',
-        errorConfusion: (c, p) => `I often confuse ${c} with ${p}. Thank you for helping me!`,
-        improvedMessage: 'I misjudged this sentence the first time. Now I recognize it better!',
-        emotionalFeedback: 'I realize that I often misunderstand you... please give me another chance.',
-        statsNoData: 'Prediction statistics: no data',
-        statsPrefix: 'Prediction statistics: ',
-        statsCorrect: 'correct',
-        statsWrong: 'wrong',
-        learnedExamples: 'Learned examples: ',
-        emotionPointsLabel: 'Emotion points',
-        settingsBtn: '⚙️ Settings',
-        infoBtn: 'ℹ️ Info',
-        clearChatBtn: 'Delete chat history',
-        downloadModelBtn: 'Download model',
-        setDefaultEmotionBtn: 'Set',
-        defaultEmotionLabel: 'Default emotion:',
-        choose: 'Select...',
-        customResponseLabel: 'Custom response for emotion:',
-        customResponsePlaceholder: 'Custom response...',
-        addCustomResponseBtn: 'Add response',
-        languageLabel: 'Language:',
-        languageOptions: { de:'German', en:'English' },
-        settingsTitle: 'Settings',
-        settingsIntro: 'Adjust EgoMorph in just a few clicks—from quick actions to personalised addressing.',
-        quickActionsTitle: 'Quick actions',
-        quickActionsHint: 'Control history, voice and stored data right here.',
-        ltmExportBtn: 'Save',
-        ltmClearBtn: 'Delete',
-        defaultSectionTitle: 'Defaults',
-        defaultSectionHint: 'This choice defines the initial tone of the conversation.',
-        personalSectionTitle: 'Personal address',
-        userNameLabel: 'Your name',
-        userNamePlaceholder: 'e.g. Pascal',
-        saveUserNameBtn: 'Save',
-        clearUserNameBtn: 'Remove',
-        clearUserNameTitle: 'Remove name',
-        personalSectionHint: 'EgoMorph will address you with this name in its replies.',
-        customSectionTitle: 'Custom responses',
-        customSectionDescription: 'Add individual reactions for specific emotions.',
-        appearanceSectionTitle: 'Appearance',
-        shapeLabel: 'Shape',
-        shapeOptions: { circle: 'Circle', square: 'Square', triangle: 'Triangle' },
-        pupilLabel: 'Pupil colour',
-        pupilOptions: { black: 'Black', blue: 'Blue', yellow: 'Yellow', green: 'Green' },
-        applyAppearanceBtn: 'Apply',
-        languageSectionTitle: 'Language',
-        savedNameTemplate: '(saved: {name})',
-        empathyHighPrefix: 'I understand you. ',
-        lowTrustSuffix: ' Are you sure?',
-        emotionComments: {
-          freude: 'You sound happy',
-          wut: 'It sounds like you are angry',
-          traurigkeit: 'I sense sadness in your words'
-        },
-        emotionSummarySingle: 'I mainly sense {emotion}.',
-        emotionSummaryPair: 'I sense {primary} and also {secondary}.',
-        emotionLabels: {
-          freude: 'Joy',
-          wut: 'Anger',
-          traurigkeit: 'Sadness'
-        },
-        questionIntros: {
-          why: 'You are wondering why – let me think it through with you.',
-          how: 'Let us explore how that could work.',
-          what: 'I am looking at what could support you.',
-          when: 'We can talk about the right timing as well.',
-          where: 'Let us find the right place or context together.',
-          general: 'I will think along with you so we can figure it out.'
-        },
-        memoryRecallTemplate: 'I remember you once mentioned “{memory}”.',
-        topicRecallTemplate: 'That connects to {topic} you mentioned earlier.',
-        mentionsObject: 'You mention {object}',
-        defaultEmotionOptions: {
-          freude:'Joy',
-          wut:'Anger',
-          traurigkeit:'Sadness',
-          angst:'Fear',
-          vertrauen:'Trust',
-          ueberraschung:'Surprise'
-        },
-        infoText: 'EgoMorph is an interactive project created with love and curiosity for exploring emotions and machine learning. This placeholder text can later be replaced with information about the origins, ideas and philosophy of EgoMorph.',
-        memoryPrefix: 'I remember:',
-        youPrefix: 'You:',
-        alternativeBtn: 'This answer would have been better.',
-        voiceActivate: 'Enable voice',
-        voiceDeactivate: 'Disable voice'
-      },
-      fr: {
-        placeholder: 'Dire quelque chose',
-        sendButton: 'Envoyer',
-        speechTitle: 'Démarrer la saisie vocale',
-        yes: 'Oui',
-        no: 'Non',
-        correctRecognition: 'A-t-on correctement identifié cela ?',
-        selectCorrectEmotion: 'Veuillez sélectionner l’émotion correcte',
-        confirm: 'Confirmer',
-        thankYouLearned: 'Merci. J’ai appris.',
-        feedbackPrompt: 'Qu’est-ce que j’ai mal compris ?',
-        errorConfusion: (c, p) => `Je confonds souvent ${c} avec ${p}. Merci de m’avoir aidé.`,
-        improvedMessage: 'J’ai mal interprété cette phrase la première fois, je la comprends mieux maintenant !',
-        emotionalFeedback: 'Je me rends compte que je vous comprends souvent mal… Donnez-moi une autre chance s’il vous plaît.',
-        statsNoData: 'Statistiques de prédiction : aucune donnée',
-        statsPrefix: 'Statistiques de prédiction : ',
-        statsCorrect: 'Correct',
-        statsWrong: 'Faux',
-        learnedExamples: 'Exemples appris : ',
-        emotionPointsLabel: 'Points d’émotions',
-        settingsBtn: '⚙️ Paramètres',
-        infoBtn: 'ℹ️ Info',
-        clearChatBtn: 'Supprimer Ihistorique des discussions',
-        downloadModelBtn: 'Telecharger la modele',
-        setDefaultEmotionBtn: 'Ensemble',
-        defaultEmotionLabel: 'Emotion par defaut',
-        choose: 'Selectionner...',
-        customResponseLabel: 'Reponse personnalisee a lemotion:',
-        customResponsePlaceholder: 'Reponse personnalisee...',
-        addCustomResponseBtn: 'Ajouter une reponse',
-        languageLabel: 'Langue:',
-        languageOptions: { de: 'Allemand', en: 'Anglaise' },
-        settingsTitle: 'Parametres',
-        settingsIntro: 'Modifiez Egomorph en quelques clics seulement: de l action a la personnalisation',
-        quickActionsTitle: 'Action rapide',
-        quickActionsHint: 'Controlez lhistorique la voix et les donees enregistrees ici meme',
-        ltmExportBtn: 'Sauvegarder',
-        ltmClearBtn: 'supprimer',
-        defaultSectionTitle: 'default',
-        defaultSectionHint: 'Ce choix definit le ton initial de la conversation.',
-        personalSectionTitle: 'Adresse personnelle',
-        userNameLabel: 'votre mom',
-        userNamePlaceholder: 'Nom de dein',
-        saveUserNameBtn: 'Sauvegarder',
-        clearUserNameBtn: 'retirer',
-        clearUserNameTitle: 'Supprimer le nom',
-        personalSectionHint: 'Egomorph vous apellera par ce nom dans ses reponses',
-        customSectionTitle: 'Reponses personnalisees',
-        customSectionDescription: 'Ajouter des reactions individuelles pour des emotions specifiques',
-        appearanceSectionTitle: 'Apparence',
-        shapeLabel: 'forme',
-        shapeOptions: { circle: 'Circle', square: 'Carre', triangle: 'Triangle' },
-        pupilLabel: 'Couleur de la pupille',
-        pupilOptions: { black: 'noir', blue: 'Bleue', yellow: 'Jaune', green: 'Verte' },
-        applyAppearanceBtn: 'Appliquer',
-        languageSectionTitle: 'Langue',
-        savedNameTemplate: '(sauve: {name})',
-        empathyHighPrefix: 'Je te comprends. ',
-        lowTrustSuffix: ' Es-tu sur',
-  
-        emotionComments: {
-           freude: 'tu as lair heureux',
-           wut: 'On dirait que tu es en colere',
-           traurigkeit: 'Je percois de la tristesse dans tes paraoles',
-       },
-           emotionSummarySingle: 'Je sens principalement {emotion}.',
-           emotionSummaryPair: 'Je le sens {primary} et aussi {secondary}.',
-           emotionLabels: {
-           freude: 'Joie',
-           wut: 'Colere',
-           traurigkeit: 'Tristesse'
-  },
-       questionIntros: {
-           why: 'Vous vous demandez pourquoi, Laissez-moi y reflechir avec vous',
-           how: 'Voyons comment cela pourrait',
-           what: 'Je cherche ce qui pourrait vous aider',
-           when: 'Nous pouvons egalement parler du moment opportun',
-           where: 'Trouvons ensemble le lieu ou le context approprie.',
-           general: 'Je vais reflechir avec toi pour quon puisse trouver la solutiion'
-  },
-       memoryRecallTemplate: 'Je me souviens que vous avez mentionne une fois“{memory}”.',
-       topicRecallTemplate: 'Cela se connecte a {topic} Vous avez mentionne plus tot.',
-       mentionsObject: 'vous mentionnez {object}',
-       defaultEmotionOptions: {
-       freude: 'Joie',
-       wut: 'Colere',
-       traurigkeit: 'Tristesse',
-       angst: 'Peur',
-       vertrauen: 'Confiance',
-       ueberraschung: 'Surprendre'
-  },
-       infoText: 'EgoMorph est votre compagnon personnel; Egomorph est capable de reconnaitre les emotions et dadapter son apparence en consequence',
-       memoryPrefix: 'Je me souviens:',
-      youPrefix: 'Toi:',
-      alternativeBtn: 'Cette reponse aurait ete meilleure',
-      voiceActivate: 'Activer la voix',
-      voiceDeactivate: 'Desactiver la voix'
-}
-
+      de: egoLocales.de && egoLocales.de.ui,
+      en: egoLocales.en && egoLocales.en.ui,
+      fr: egoLocales.fr && egoLocales.fr.ui
     };
+    translations.de = translations.de || { youPrefix: 'Du:', memoryPrefix: 'Ich erinnere mich an:' };
+    translations.en = translations.en || translations.de;
+    translations.fr = translations.fr || translations.de;
     window.__egoTranslations = translations;
+    window.egoT = function (key) {
+      const lang = window.__egoCurrentLanguage || currentLanguage || 'de';
+      return (translations[lang] && translations[lang][key]) ||
+        (translations.de && translations.de[key]) ||
+        key;
+    };
+
+    // Names of the categories shown to the user for each language.
+    const categoryDisplayNames = {
+      de: (egoLocales.de && egoLocales.de.categoryDisplayNames) || {},
+      en: (egoLocales.en && egoLocales.en.categoryDisplayNames) || {},
+      fr: (egoLocales.fr && egoLocales.fr.categoryDisplayNames) || {}
+    };
+
+    // Preserve German responses and load translated response sets from the locale files.
+    const originalResponses = {};
+    for (const k in categories) {
+      originalResponses[k] = categories[k].responses.slice();
+    }
+    const categoriesEnglish = (egoLocales.en && egoLocales.en.categoryResponses) || {};
+    const categoriesFrench = (egoLocales.fr && egoLocales.fr.categoryResponses) || {};
 
     function formatSavedNameLabel(name) {
       if (!name) return '';
@@ -1425,91 +1172,21 @@ Alpha
       outEl.textContent = saved ? formatSavedNameLabel(saved) : '';
     }
     window.renderSavedUserNameLabel = renderSavedUserNameLabel;
-    // Extend translations with new keys for feedback system and language switching
-    translations.de.correctEmotionPrompt = 'Bitte wähle die richtige Emotion:';
-    translations.en.correctEmotionPrompt = 'Please select the correct emotion:';
-    translations.fr.correctEmotionPrompt = 'Veuillez selectinner iemotion correct:';
-    translations.de.commentPrompt = 'Was habe ich falsch verstanden?';
-    translations.en.commentPrompt = 'What did I misunderstand?';
-    translations.fr.commentPrompt = 'Quest-ce que jai mal compris?';
-    translations.de.confirmFeedback = 'Bestätigen';
-    translations.en.confirmFeedback = 'Confirm';
-    translations.fr.confirmFeedback = 'Comfirmer';
-    translations.de.trainingAcknowledgement = 'Danke! Ich habe gelernt.';
-    translations.en.trainingAcknowledgement = 'Thanks!';
-    translations.fr.trainingAcknowledgement = 'Merci!';
-    translations.de.errorConfuse = 'Ich verwechsle oft {correct} mit {predicted}. Danke, dass du mir hilfst!';
-    translations.en.errorConfuse = 'I often confuse {correct} with {predicted}. Thank you for helping me!';
-    translations.fr.errorConfuse = 'Je confonds souvent {correct} avec {predicted}. Merci de mavoir aide';
-    translations.de.learningProgress = 'Diesen Satz habe ich beim ersten Mal falsch eingeschätzt. Jetzt erkenne ich ihn besser!';
-    translations.en.learningProgress = 'I misclassified this sentence the first time. Now I recognise it better!';
-    translations.fr.learningProgress = 'Jai mal classe cette phrase la premiere foi';
-    translations.de.suggestionsIntro = 'Alternative Vorschläge:';
-    translations.en.suggestionsIntro = 'Alternative suggestions:';
-    translations.fr.suggestionsIntro = 'Suggestions alternatives:';
 
-    // Add installation button labels for the PWA installer
-    translations.de.installBtn = 'Installieren';
-    translations.en.installBtn = 'Install';
-    translations.fr.installBtn = 'Installer';
-    // Names of the categories shown to the user for each language
-    const categoryDisplayNames = {
-      de: {
-        dislike:'Nicht mögen',
-        greeting:'Begrüßung',
-        farewell:'Abschied',
-        anger:'Wut',
-        sadness:'Traurigkeit',
-        joy:'Freude',
-        fear:'Angst',
-        surprise:'Überraschung',
-        trust:'Vertrauen',
-        default:'Neutral'
-      },
-      en: {
-        dislike:'Dislike',
-        greeting:'Greeting',
-        farewell:'Farewell',
-        anger:'Anger',
-        sadness:'Sadness',
-        joy:'Joy',
-        fear:'Fear',
-        surprise:'Surprise',
-        trust:'Trust',
-        default:'Neutral'
-      },
-      fr: {
-        dislike:'aversion',
-        greeting:'Salutation',
-        farewell:'Adieu',
-        anger:'colere',
-        sadness:'Tristesse',
-        joy:'joie',
-        fear:'peur',
-        surprise:'surprendre',
-        trust:'confiance',
-        default:'neutre'
-      }
-    };
-    // Objects for tracking feedback and personalised learning
+    // Objects for tracking feedback and personalised learning.
     let misclassificationCounts = {};
     let trainingHistory = {};
     let feedbackComments = [];
     let consecutiveWrong = 0;
 
-    // Track how often the anger category has been triggered in a row.  If the
-    // user’s inputs repeatedly elicit angry responses, EgoMorph will enter
-    // an evil mode.  Friendly categories reset this counter and return
-    // EgoMorph to its normal state.  Evil mode is signalled via the
-    // `evil` CSS class on the entity element.
+    // Track how often the anger category has been triggered in a row.
     let angerStreak = 0;
     let evilMode = false;
-    // Load persisted variables from localStorage, if available
+
     (function loadPersistentData() {
       try {
-        // current language preference
         const storedLang = localStorage.getItem('currentLanguage');
-        if (storedLang && (storedLang === 'de' || storedLang === 'en' || storedLang === 'fr' )) {
+        if (storedLang && (storedLang === 'de' || storedLang === 'en' || storedLang === 'fr')) {
           currentLanguage = storedLang;
         }
         const misStr = localStorage.getItem('misclassificationCounts');
@@ -1528,7 +1205,8 @@ Alpha
         console.warn('Failed to load persisted feedback data', e);
       }
     })();
-    // Persist feedback-related data to localStorage
+    updateSpeechRecognitionLanguage(currentLanguage);
+
     window.__egoCurrentLanguage = currentLanguage;
     function savePersistentData() {
       try {
@@ -1540,48 +1218,20 @@ Alpha
         console.warn('Failed to save persisted feedback data', e);
       }
     }
-    // Synonyms mapping for retraining on similar expressions
+
+    // Synonyms mapping for retraining on similar expressions.
     const synonymsMapping = {
-      'so fertig': ['ich kann nicht mehr','ich bin erschöpft'],
-      'ich bin so fertig': ['ich kann nicht mehr','ich bin erschöpft'],
-      'traurig': ['bedrückt','depressiv'],
-      'wütend': ['sauer','verärgert'],
-      'glücklich': ['fröhlich','zufrieden'],
-      'angst': ['furcht','panik','sorge'],
-      'freue': ['glücklich','freudig'],
-      'liebe': ['mag','schätze'],
+      'so fertig': ['ich kann nicht mehr', 'ich bin erschöpft'],
+      'ich bin so fertig': ['ich kann nicht mehr', 'ich bin erschöpft'],
+      'traurig': ['bedrückt', 'depressiv'],
+      'wütend': ['sauer', 'verärgert'],
+      'glücklich': ['fröhlich', 'zufrieden'],
+      'angst': ['furcht', 'panik', 'sorge'],
+      'freue': ['glücklich', 'freudig'],
+      'liebe': ['mag', 'schätze'],
       'einsam': ['allein'],
-      'müde': ['erschöpft','kaputt']
+      'müde': ['erschöpft', 'kaputt']
     };
-    // Preserve the original German responses for each category to support language switching
-    const originalResponses = {};
-    for (const k in categories) {
-      originalResponses[k] = categories[k].responses.slice();
-    }
-    // Provide English alternatives for the category responses
-    const categoriesEnglish = {
-      dislike: { responses: ["That hurts me. You don't like me?", "It's a pity you don't like me. That hurts.", "So hard to hear that you don't like me."] },
-      greeting: { responses: ['Hello! How are you?', 'Hi! Nice that you are here.', "Hey! I'm glad to hear from you."] },
-      farewell: { responses: ['Goodbye. See you next time!', 'Bye! I hope we see each other again.', 'See you soon. Take care!'] },
-      anger: { responses: ['These words hurt me and make me angry.', 'I feel the anger rising within me.', 'Why so much anger? That hurts me.'] },
-      sadness: { responses: ["It sounds like you're very sad. That makes me sad too.", 'I feel your sorrow. You are not alone.', 'That hurts me. Why do you feel that way?'] },
-      joy: { responses: ['That makes me happy! Thank you for being so kind.', 'I feel joy—your words give me strength.', 'So much positivity! That feels good.'] },
-      fear: { responses: ['I feel insecurity and fear. It unsettles me.', 'Your words scare me. What will happen?', 'I feel threate'] },
-      surprise: { responses: ["Oh! I didn't expect that.", 'That surprises me a lot!', 'I would not have expected that.'] },
-      trust: { responses: ['I feel your trust. That means a lot to me.', 'Thank you for your trust—it strengthens us.', 'I feel safe with you.'] },
-      default: { responses: ["I'm listening to you. Tell me more.", 'Interesting... Please continue.', 'Thank you for sharing your thoughts with me.'] }
-    };
-    
-    const categoriesFrench = {
-      dislike: {responses: ["ca me blesse. tu ne maimes pas?", "cest dommage que vous me maimiez pas."]},
-      greeting: {responses: ['Bonjour comment allez-vouz?', 'Salut Ravie que tu sois la']},
-      farewell: {responses: ['Au revoir. a la prochaine.', 'Au revoir, jespere que nous nous reverrons.' ]},
-      anger:{responses: ['Ces mots me blessent et me mettent en colere', 'Je sens la colere monter en moi.']},
-      sadness:{responses: ["On dirait que tu es tres triste",'Je partage votre peine vous netes pas seul.']},
-      joy:{responses: ['cela me rend heureux','Tellement de positivite, ca fait du bien.']},
-      fear:{responses: ['Je ressens de Iinsecurite et de la peur', 'Tes paroles me font peur, que va-ta-il se passer?' ]},
-      surprise:{responses:["Oh, je ne my attendais pas." ]}
-      };
 
     /**
      * Basic sentiment analysis to count positive and negative tokens and
@@ -1852,6 +1502,12 @@ Alpha
       // Cancel any ongoing utterances to avoid overlapping playback
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      const speechLanguages = {
+        de: 'de-DE',
+        en: 'en-US',
+        fr: 'fr-FR'
+      };
+      utterance.lang = speechLanguages[currentLanguage] || speechLanguages.de;
       // Determine the dominant emotion to modulate pitch and rate
       const { wut, vertrauen, freude, angst, traurigkeit, ueberraschung } = emotion;
       let dominantName = 'wut';
@@ -1884,9 +1540,9 @@ Alpha
       function assignVoiceAndSpeak() {
         const voices = synth.getVoices();
         if (voices && voices.length > 0) {
-          // Prefer a German voice when available; otherwise fall back to the first voice.
-          const deVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('de'));
-          utterance.voice = deVoices.length ? deVoices[0] : voices[0];
+          const languagePrefix = (currentLanguage || 'de').toLowerCase();
+          const matchingVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(languagePrefix));
+          utterance.voice = matchingVoices.length ? matchingVoices[0] : voices[0];
         }
         synth.speak(utterance);
       }
@@ -1913,9 +1569,7 @@ Alpha
     let lastInputText = '';
     // Store the last predicted emotion distribution so that replies can reference it.
     let lastEmotionResults = null;
-    // Count of user-provided training examples.  This reflects how many times
-    // the user has corrected a classification.  Retrieved from localStorage on load.
-    let userTrainingCount = 0;
+    // Count of user-provided training examples. This is restored from localStorage on load.
     /**
      * Update the visible statistics display in the UI.
      */
@@ -1966,6 +1620,18 @@ Alpha
       const infoToggleEl = document.getElementById('infoToggle');
       if (infoToggleEl) {
         infoToggleEl.textContent = translations[currentLanguage].infoBtn;
+      }
+      const welcomeTextEl = document.getElementById('welcomeText');
+      if (welcomeTextEl) {
+        welcomeTextEl.textContent = translations[currentLanguage].welcomeText;
+      }
+      const closeModalBtnEl = document.getElementById('closeModalBtn');
+      if (closeModalBtnEl) {
+        closeModalBtnEl.textContent = translations[currentLanguage].closeModalBtn;
+      }
+      const writerToggleEl = document.getElementById('writerToggle');
+      if (writerToggleEl) {
+        writerToggleEl.textContent = translations[currentLanguage].writerBtn;
       }
       // Clear chat, download model and default emotion buttons
       const settingsTitleEl = document.getElementById('settingsTitle');
@@ -2151,6 +1817,71 @@ Alpha
       if (applyAppearanceBtn) {
         applyAppearanceBtn.textContent = translations[currentLanguage].applyAppearanceBtn;
       }
+      const htmlTextMap = {
+        resourceProfileIntro: 'resourceProfileIntro',
+        apiSettingsIntro: 'apiSettingsIntro',
+        apiSettingsWarning: 'apiSettingsWarning',
+        modelSettingsHint: 'modelSettingsHint',
+        chatModelSettingsHint: 'chatModelSettingsHint'
+      };
+      for (const id in htmlTextMap) {
+        const el = document.getElementById(id);
+        const value = translations[currentLanguage][htmlTextMap[id]];
+        if (el && value) el.innerHTML = value;
+      }
+      const textMap = {
+        resourceProfileSummary: 'resourceProfileTitle',
+        resourceProfileLiteText: 'resourceProfileLiteText',
+        resourceProfileLiteMeta: 'resourceProfileLiteMeta',
+        resourceProfileStandardText: 'resourceProfileStandardText',
+        resourceProfileStandardMeta: 'resourceProfileStandardMeta',
+        resourceProfileFullName: 'resourceProfileFullName',
+        resourceProfileFullText: 'resourceProfileFullText',
+        resourceProfileFullMeta: 'resourceProfileFullMeta',
+        resourceProfileApiText: 'resourceProfileApiText',
+        resourceProfileApiMeta: 'resourceProfileApiMeta',
+        resourceProfileReloadHint: 'resourceProfileReloadHint',
+        apiSettingsSummary: 'apiSettingsTitle',
+        apiUrlLabel: 'apiUrlLabel',
+        apiKeyLabel: 'apiKeyLabel',
+        apiModelLabel: 'apiModelLabel',
+        apiSaveBtn: 'apiSaveBtn',
+        apiTestBtn: 'apiTestBtn',
+        apiExamplesTitle: 'apiExamplesTitle',
+        modelSettingsSummary: 'modelSettingsTitle',
+        modelIdLabel: 'modelIdLabel',
+        reloadModelBtn: 'reloadModelBtn',
+        lightEmotionModelsTitle: 'lightEmotionModelsTitle',
+        chatModelSettingsSummary: 'chatModelSettingsTitle',
+        chatModelIdLabel: 'chatModelIdLabel',
+        reloadChatModelBtn: 'reloadChatModelBtn',
+        llmMaxTokensLabel: 'llmMaxTokensLabel',
+        llmEnabledLabel: 'llmEnabledLabel',
+        lightChatModelsTitle: 'lightChatModelsTitle'
+      };
+      for (const id in textMap) {
+        const el = document.getElementById(id);
+        const value = translations[currentLanguage][textMap[id]];
+        if (el && value) el.textContent = value;
+      }
+      const placeholderMap = {
+        egoApiUrlInput: 'apiUrlPlaceholder',
+        egoApiKeyInput: 'apiKeyPlaceholder',
+        egoApiModelInput: 'apiModelPlaceholder'
+      };
+      for (const id in placeholderMap) {
+        const el = document.getElementById(id);
+        const value = translations[currentLanguage][placeholderMap[id]];
+        if (el && value) el.placeholder = value;
+      }
+      const modelStatusText = document.getElementById('modelStatusText');
+      if (modelStatusText && ['Lade…', 'Lade...', 'Loading...', 'Chargement...'].includes(modelStatusText.textContent)) {
+        modelStatusText.textContent = translations[currentLanguage].modelStatusLoading;
+      }
+      const chatModelStatusText = document.getElementById('chatModelStatusText');
+      if (chatModelStatusText && ['Kein Modell geladen', 'No model loaded', 'Aucun modèle chargé'].includes(chatModelStatusText.textContent)) {
+        chatModelStatusText.textContent = translations[currentLanguage].chatModelStatusIdle;
+      }
       // Update information panel text
       const infoContentEl = document.getElementById('infoContent');
       if (infoContentEl) {
@@ -2183,6 +1914,7 @@ Alpha
       if (!newLang || (newLang !== 'de' && newLang !== 'en' && newLang !== 'fr')) return;
       currentLanguage = newLang;
       window.__egoCurrentLanguage = currentLanguage;
+      updateSpeechRecognitionLanguage(currentLanguage);
       // Switch category responses to the corresponding language.  Original German
       // responses are stored in originalResponses and English versions in categoriesEnglish.
       for (const key in categories) {
