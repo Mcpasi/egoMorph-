@@ -90,3 +90,9 @@ Emotion Point System 🎮
 ### ⭐ New Feature
 
 - EgoMorph Writer A new editor, it can correct your spelling mistakes, continue writing, available in Full and API mode. 
+
+- In full mode, a security filter now takes effect. 
+
+### 🐞 Fixes
+
+- Bugs in English and French have been fixed. 
